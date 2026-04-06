@@ -784,6 +784,10 @@ input[type="file"] {
     display: none;
 }
 
+.marked-widget.expanded .marked-collapsed {
+    display: none;
+}
+
 .marked-collapsed {
     display: flex;
     flex-direction: column;

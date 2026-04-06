@@ -38,6 +38,7 @@ function showLoginPage() {
 }
 
 function showMainApp() {
+    document.getElementById('loginPage').style.display = 'none'
     const mainContainer = document.getElementById('mainContainer')
     mainContainer.style.opacity = '0'
     mainContainer.style.display = 'block'
