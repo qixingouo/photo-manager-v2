@@ -202,37 +202,38 @@ function renderCategories() {
     }).join('')
 }
 
-window.toggleCategoryChildren = function(parentId) {
-    const childrenEl = document.getElementById(`children-${parentId}`)
-    if (childrenEl) {
-        const isHidden = childrenEl.style.display === 'none'
-        childrenEl.style.display = isHidden ? 'flex' : 'none'
-        
-        // 更新箭头方向
-        const parentTag = childrenEl.previousElementSibling
+window.toggleCategoryChildren = function(parentId, event) {
+    if (event) event.stopPropagation()
+    
+    const childrenEl = document.getElementById('children-' + parentId)
+    const parentTag = document.querySelector('.category-parent > .category-tag[onclick*="' + parentId + '"]')
+    
+    if (!childrenEl || !parentTag) {
+        console.log('Elements not found:', parentId)
+        return
+    }
+    
+    const isHidden = childrenEl.style.display === 'none' || childrenEl.style.display === ''
+    
+    if (isHidden) {
+        childrenEl.style.display = 'flex'
         const span = parentTag.querySelector('span')
-        if (span.textContent.endsWith(' ▼')) {
-            span.textContent = span.textContent.replace(' ▼', isHidden ? ' ▲' : ' ▼')
-        } else if (span.textContent.endsWith(' ▲')) {
-            span.textContent = span.textContent.replace(' ▲', isHidden ? ' ▲' : ' ▼')
+        if (span) {
+            span.textContent = span.textContent.replace(' ▼', '').trim() + ' ▲'
         }
-        
-        // 如果点击的是顶级分类且有子分类，则筛选该父分类及其子分类的照片
-        if (isHidden) {
-            filterByCategory(parentId, true)
+    } else {
+        childrenEl.style.display = 'none'
+        const span = parentTag.querySelector('span')
+        if (span) {
+            span.textContent = span.textContent.replace(' ▲', '').trim() + ' ▼'
         }
     }
 }
 
-window.filterByCategory = function(categoryId, fromToggle = false) {
+window.filterByCategory = function(categoryId) {
     currentCategory = categoryId
     document.getElementById('filterCategory').value = categoryId
     loadPhotos()
-    
-    // 如果是从toggle来的，不需要再设置currentCategory
-    if (fromToggle) {
-        renderCategories()
-    }
 }
 
 function updateCategorySelects() {
