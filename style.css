@@ -169,6 +169,7 @@ input[type="file"] {
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .category-tag:hover {

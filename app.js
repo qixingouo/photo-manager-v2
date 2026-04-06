@@ -75,7 +75,18 @@ function updatePhotosTitle() {
     const titleEl = document.getElementById('photosTitle')
     if (currentCategory && currentCategory !== 'all') {
         const cat = categories.find(c => c.id === currentCategory)
-        titleEl.innerHTML = `<a onclick="clearCategoryFilter()">📷 照片浏览</a> / ${cat ? cat.name : ''}`
+        let breadcrumb = `<a onclick="clearCategoryFilter()">📷 照片浏览</a>`
+        
+        // 构建面包屑导航
+        if (cat && cat.parent_id) {
+            const parent = categories.find(c => c.id === cat.parent_id)
+            if (parent) {
+                breadcrumb += ` / <a onclick="filterByCategory('${parent.id}')">${parent.name}</a>`
+            }
+        }
+        
+        breadcrumb += ` / ${cat ? cat.name : ''}`
+        titleEl.innerHTML = breadcrumb
     } else {
         titleEl.innerHTML = '📷 照片浏览'
     }
@@ -100,12 +111,21 @@ function renderCategories() {
         return
     }
     
-    container.innerHTML = categories.map(cat => {
+    // 按层级排序：顶级分类在前，子分类在后
+    const sortedCategories = [...categories].sort((a, b) => {
+        if (!a.parent_id && b.parent_id) return -1
+        if (a.parent_id && !b.parent_id) return 1
+        return 0
+    })
+    
+    container.innerHTML = sortedCategories.map(cat => {
         const count = photos.filter(p => p.category_id === cat.id).length
         const isActive = currentCategory === cat.id ? 'active' : ''
+        const depth = cat.parent_id ? categories.find(c => c.id === cat.parent_id) ? '　└─ ' : '' : ''
+        const hasChildren = categories.some(c => c.parent_id === cat.id)
         return `
             <div class="category-tag ${isActive}" onclick="filterByCategory('${cat.id}')">
-                <span>${cat.name}</span>
+                <span>${depth}${cat.name}${hasChildren ? ' ▼' : ''}</span>
                 <span class="count">${count}</span>
                 <button class="btn-danger" onclick="event.stopPropagation(); window.deleteCategory('${cat.id}')" title="删除">×</button>
             </div>
@@ -122,6 +142,7 @@ window.filterByCategory = function(categoryId) {
 function updateCategorySelects() {
     const uploadSelect = document.getElementById('categorySelect')
     const filterSelect = document.getElementById('filterCategory')
+    const parentSelect = document.getElementById('parentCategorySelect')
     
     const options = categories.map(cat => 
         `<option value="${cat.id}">${cat.name}</option>`
@@ -129,6 +150,7 @@ function updateCategorySelects() {
     
     uploadSelect.innerHTML = `<option value="">选择分类（可选）</option>${options}`
     filterSelect.innerHTML = `<option value="all">全部分类</option>${options}`
+    parentSelect.innerHTML = `<option value="">作为顶级分类</option>${options}`
     
     if (currentCategory !== 'all') {
         filterSelect.value = currentCategory
@@ -138,6 +160,7 @@ function updateCategorySelects() {
 window.createCategory = async function() {
     const input = document.getElementById('newCategory')
     const name = input.value.trim()
+    const parentId = document.getElementById('parentCategorySelect').value || null
     
     if (!name) {
         alert('请输入分类名称')
@@ -147,13 +170,14 @@ window.createCategory = async function() {
     try {
         const { data, error } = await supabase
             .from('categories')
-            .insert([{ name }])
+            .insert([{ name, parent_id: parentId }])
             .select()
             .single()
         
         if (error) throw error
         
         input.value = ''
+        document.getElementById('parentCategorySelect').value = ''
         await loadCategories()
     } catch (err) {
         alert('创建分类失败: ' + err.message)

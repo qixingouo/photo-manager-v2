@@ -9,8 +9,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>📷 照片分类管理系统</h1>
-            <p class="subtitle">管理你的照片资产</p>
+            <h1>📷 老大和小弟的回忆管理系统</h1>
+            <p class="subtitle">回忆我们的从前</p>
         </header>
 
         <!-- 上传区域 -->
@@ -42,6 +42,9 @@
             <h2>分类管理</h2>
             <div class="category-controls">
                 <input type="text" id="newCategory" placeholder="新分类名称">
+                <select id="parentCategorySelect" class="category-select">
+                    <option value="">作为顶级分类</option>
+                </select>
                 <button onclick="window.createCategory()" class="btn btn-secondary">添加分类</button>
             </div>
             <div id="categoryList" class="category-list"></div>
