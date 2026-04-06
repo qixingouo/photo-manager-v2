@@ -679,59 +679,79 @@ input[type="file"] {
     min-height: 20px;
 }
 
-/* 顶部导航栏 - 黄金分割 */
+/* 左侧竖版导航栏 */
 .top-nav {
     position: fixed;
-    top: 0;
     left: 0;
-    width: 61.8%;
-    height: 50px;
+    top: 50%;
+    transform: translateY(-50%);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
+    border-radius: 0 20px 20px 0;
+    padding: 15px 0;
     z-index: 1000;
-    box-shadow: 0 2px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 4px 0 20px rgba(102, 126, 234, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .nav-section {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
-    color: white;
-    font-size: 14px;
+    transition: all 0.3s ease;
+    position: relative;
 }
 
-.nav-section:hover {
-    background: rgba(255,255,255,0.2);
-}
-
-.nav-section.active {
-    background: rgba(255,255,255,0.3);
+.nav-section:hover .nav-text {
+    opacity: 1;
+    transform: translateX(0);
+    background: rgba(255,255,255,0.95);
+    color: #667eea;
 }
 
 .nav-icon {
-    font-size: 18px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    transition: all 0.3s;
 }
 
-.nav-divider {
-    width: 1px;
-    height: 30px;
-    background: rgba(255,255,255,0.3);
-    margin: 0 10px;
+.nav-section:hover .nav-icon {
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    margin-left: 5px;
 }
 
-.nav-badge {
-    background: #FFD700;
-    color: #764ba2;
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: bold;
+.nav-text {
+    position: absolute;
+    left: 55px;
+    white-space: nowrap;
+    padding: 10px 16px;
+    background: white;
+    color: #667eea;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    pointer-events: none;
+}
+
+.nav-text::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: white;
 }
 
 /* 右侧标记分类浮窗 */
