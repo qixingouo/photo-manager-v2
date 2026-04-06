@@ -12,7 +12,7 @@
         <div class="login-box">
             <h1>📷 老大和小弟的回忆管理系统</h1>
             <p class="subtitle">回忆我们的从前</p>
-            <form id="loginForm" onsubmit="handleLogin(event)">
+            <form id="loginForm" onsubmit="window.handleLogin(event)">
                 <div class="form-group">
                     <label>账号</label>
                     <input type="text" id="loginUsername" required placeholder="请输入账号">
@@ -35,19 +35,19 @@
 
         <!-- 顶部导航栏 -->
         <nav class="top-nav" id="topNav">
-            <div class="nav-section" onclick="toggleSection('upload')">
+            <div class="nav-section" onclick="window.toggleSection('upload')">
                 <span class="nav-icon">📤</span>
                 <span class="nav-text">上传照片</span>
             </div>
             <div class="nav-divider"></div>
-            <div class="nav-section" onclick="toggleSection('category')">
+            <div class="nav-section" onclick="window.toggleSection('category')">
                 <span class="nav-icon">📁</span>
                 <span class="nav-text">分类管理</span>
             </div>
         </nav>
 
         <!-- 右侧标记分类浮窗 -->
-        <div class="marked-widget" id="markedWidget" onclick="toggleMarkedCategories(event)">
+        <div class="marked-widget" id="markedWidget" onclick="window.toggleMarkedCategories(event)">
             <!-- 收起状态 -->
             <div class="marked-collapsed">
                 <span>⭐</span>
@@ -97,7 +97,7 @@
             <div id="categoryList" class="category-list"></div>
         </section>
 
-        <button onclick="handleLogout()" class="btn btn-secondary" style="position:fixed;top:20px;right:20px;z-index:100;">退出登录</button>
+        <button onclick="window.handleLogout()" class="btn btn-secondary" style="position:fixed;top:20px;right:20px;z-index:100;">退出登录</button>
 
         <!-- 照片浏览 -->
         <section class="photos-section">
@@ -108,11 +108,11 @@
                     <select id="filterCategory" onchange="onCategoryFilterChange()">
                         <option value="all">全部分类</option>
                     </select>
-                    <button id="selectModeBtn" onclick="toggleSelectMode()" class="btn btn-secondary">☑️ 多选</button>
-                    <button id="selectAllBtn" onclick="selectAllPhotos()" class="btn btn-secondary" style="display:none;">全选</button>
-                    <button id="batchCategoryBtn" onclick="openBatchCategoryModal()" class="btn btn-secondary" style="display:none;">📁 批量改分类</button>
-                    <button id="batchDeleteBtn" onclick="batchDeletePhotos()" class="btn btn-danger" style="display:none;">🗑️ 删除 (<span id="selectedCount">0</span>)</button>
-                    <button id="favoritesFilterBtn" onclick="toggleFavoritesFilter()" class="btn btn-secondary">❤️ 收藏</button>
+                    <button id="selectModeBtn" onclick="window.toggleSelectMode()" class="btn btn-secondary">☑️ 多选</button>
+                    <button id="selectAllBtn" onclick="window.selectAllPhotos()" class="btn btn-secondary" style="display:none;">全选</button>
+                    <button id="batchCategoryBtn" onclick="window.openBatchCategoryModal()" class="btn btn-secondary" style="display:none;">📁 批量改分类</button>
+                    <button id="batchDeleteBtn" onclick="window.batchDeletePhotos()" class="btn btn-danger" style="display:none;">🗑️ 删除 (<span id="selectedCount">0</span>)</button>
+                    <button id="favoritesFilterBtn" onclick="window.toggleFavoritesFilter()" class="btn btn-secondary">❤️ 收藏</button>
                 </div>
             </div>
             <div id="photoGrid" class="photo-grid"></div>
@@ -126,7 +126,7 @@
     <!-- 照片详情弹窗 -->
     <div id="photoModal" class="modal">
         <div class="modal-content">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <span class="modal-close" onclick="window.closeModal()">&times;</span>
             <div class="modal-body">
                 <div class="modal-image-container">
                     <img id="modalImage" src="" alt="">
@@ -139,15 +139,15 @@
                         <small id="modalPhotoSize"></small>
                     </div>
                     <div class="modal-actions">
-                        <button id="favoriteBtn" onclick="toggleFavorite()" class="btn btn-secondary">🤍 收藏</button>
+                        <button id="favoriteBtn" onclick="window.toggleFavorite()" class="btn btn-secondary">🤍 收藏</button>
                         <a id="modalDownloadBtn" href="" download class="btn btn-primary">⬇️ 下载</a>
-                        <button onclick="openEditModal()" class="btn btn-secondary">✏️ 编辑</button>
-                        <button onclick="openCategoryModal()" class="btn btn-secondary">📁 改分类</button>
+                        <button onclick="window.openEditModal()" class="btn btn-secondary">✏️ 编辑</button>
+                        <button onclick="window.openCategoryModal()" class="btn btn-secondary">📁 改分类</button>
                     </div>
                     <div class="modal-comments">
                         <h4>留言</h4>
                         <div id="commentsList" class="comments-list"></div>
-                        <form id="commentForm" onsubmit="addComment(event)">
+                        <form id="commentForm" onsubmit="window.addComment(event)">
                             <input type="text" id="commentInput" placeholder="写下你的留言...">
                             <button type="submit" class="btn btn-secondary">发送</button>
                         </form>
@@ -160,7 +160,7 @@
     <!-- 编辑弹窗 -->
     <div id="editModal" class="modal">
         <div class="modal-content modal-small">
-            <span class="modal-close" onclick="closeEditModal()">&times;</span>
+            <span class="modal-close" onclick="window.closeEditModal()">&times;</span>
             <h3>编辑照片信息</h3>
             <form id="editForm" class="edit-form">
                 <input type="hidden" id="editPhotoId">
@@ -180,7 +180,7 @@
     <!-- 改分类弹窗 -->
     <div id="categoryModal" class="modal">
         <div class="modal-content modal-small">
-            <span class="modal-close" onclick="closeCategoryModal()">&times;</span>
+            <span class="modal-close" onclick="window.closeCategoryModal()">&times;</span>
             <h3>更改分类</h3>
             <p style="font-size:12px;color:#666;margin-bottom:10px;">可选择多个分类</p>
             <div class="category-select-list">
@@ -190,16 +190,16 @@
                 </label>
                 <div id="categoryCheckboxList"></div>
             </div>
-            <button onclick="saveCategoryChange()" class="btn btn-primary">保存</button>
+            <button onclick="window.saveCategoryChange()" class="btn btn-primary">保存</button>
         </div>
     </div>
 
     <!-- 编辑分类弹窗 -->
     <div id="editCategoryModal" class="modal">
         <div class="modal-content modal-small">
-            <span class="modal-close" onclick="closeEditCategoryModal()">&times;</span>
+            <span class="modal-close" onclick="window.closeEditCategoryModal()">&times;</span>
             <h3>编辑分类</h3>
-            <form id="editCategoryForm" onsubmit="saveCategoryName(event)">
+            <form id="editCategoryForm" onsubmit="window.saveCategoryName(event)">
                 <input type="hidden" id="editCategoryId">
                 <div class="form-group">
                     <label>分类名称</label>
@@ -213,7 +213,7 @@
     <!-- 批量改分类弹窗 -->
     <div id="batchCategoryModal" class="modal">
         <div class="modal-content modal-small">
-            <span class="modal-close" onclick="closeBatchCategoryModal()">&times;</span>
+            <span class="modal-close" onclick="window.closeBatchCategoryModal()">&times;</span>
             <h3>批量更改分类</h3>
             <p style="font-size:12px;color:#666;margin-bottom:10px;">为选中的 <span id="batchPhotoCount">0</span> 张照片设置分类</p>
             <div class="category-select-list">
