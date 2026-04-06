@@ -422,12 +422,18 @@ async function handleUpload(e) {
         const fileName = namePrefix ? `${namePrefix}_${i + 1}` : file.name
         
         try {
-            const ext = file.name.split('.').pop()
+            // 压缩超过1.5MB的图片
+            let fileToUpload = file
+            if (file.size > 1.5 * 1024 * 1024) {
+                fileToUpload = await compressImage(file, 1.5)
+            }
+            
+            const ext = fileToUpload.name.split('.').pop()
             const uniqueName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
             
             const { error: uploadError } = await supabase.storage
                 .from('photo')
-                .upload(uniqueName, file, {
+                .upload(uniqueName, fileToUpload, {
                     cacheControl: '3600',
                     upsert: false
                 })
@@ -441,7 +447,7 @@ async function handleUpload(e) {
                     description,
                     storage_path: uniqueName,
                     original_name: file.name,
-                    size: file.size,
+                    size: fileToUpload.size,
                     is_favorite: false
                 }])
                 .select()
@@ -485,6 +491,62 @@ async function handleUpload(e) {
     } else {
         alert(`上传完成：${successCount}张成功，${failCount}张失败`)
     }
+}
+
+// 压缩图片到目标大小（单位MB）
+async function compressImage(file, maxSizeMB) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const img = new Image()
+        
+        img.onload = () => {
+            let quality = 0.9
+            let minQuality = 0.1
+            let width = img.width
+            let height = img.height
+            
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(img, 0, 0)
+            
+            // 迭代压缩直到文件小于目标大小
+            const compress = () => {
+                const dataUrl = canvas.toDataURL('image/jpeg', quality)
+                const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75)
+                
+                if (size <= maxSizeMB * 1024 * 1024 || quality <= minQuality) {
+                    // 转换为Blob
+                    fetch(dataUrl)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+                        })
+                    return
+                }
+                
+                quality -= 0.1
+                if (quality > minQuality) {
+                    compress()
+                } else {
+                    // 如果还是太大，缩小图片尺寸
+                    if (width > 800) {
+                        width = Math.round(width * 0.8)
+                        height = Math.round(height * 0.8)
+                        canvas.width = width
+                        canvas.height = height
+                        ctx.drawImage(img, 0, 0, width, height)
+                        quality = 0.7
+                    }
+                    compress()
+                }
+            }
+            
+            compress()
+        }
+        
+        img.src = URL.createObjectURL(file)
+    })
 }
 
 function getPhotoUrl(storagePath) {
