@@ -1,33 +1,27 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase 配置 - 请替换为你自己的
+// Supabase 配置
 const SUPABASE_URL = 'https://hpwqtlxrfezpnxpgwlsx.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w'
 
-// 创建 Supabase 客户端
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-// 状态
 let categories = []
 let photos = []
 
-// DOM 加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories()
     loadPhotos()
     
-    // 搜索防抖
     let searchTimeout
     document.getElementById('searchInput').addEventListener('input', () => {
         clearTimeout(searchTimeout)
         searchTimeout = setTimeout(loadPhotos, 300)
     })
     
-    // 上传表单
     document.getElementById('uploadForm').addEventListener('submit', handleUpload)
 })
 
-// 加载分类
 async function loadCategories() {
     try {
         const { data, error } = await supabase
@@ -46,7 +40,6 @@ async function loadCategories() {
     }
 }
 
-// 加载照片
 async function loadPhotos() {
     const categoryFilter = document.getElementById('filterCategory').value
     const search = document.getElementById('searchInput').value
@@ -77,7 +70,6 @@ async function loadPhotos() {
     }
 }
 
-// 渲染分类列表
 function renderCategories() {
     const container = document.getElementById('categoryList')
     
@@ -92,13 +84,12 @@ function renderCategories() {
             <div class="category-tag">
                 <span>${cat.name}</span>
                 <span class="count">${count}</span>
-                <button class="btn-danger" onclick="deleteCategory('${cat.id}')" title="删除">×</button>
+                <button class="btn-danger" onclick="window.deleteCategory('${cat.id}')" title="删除">×</button>
             </div>
         `
     }).join('')
 }
 
-// 更新分类选择器
 function updateCategorySelects() {
     const uploadSelect = document.getElementById('categorySelect')
     const filterSelect = document.getElementById('filterCategory')
@@ -111,8 +102,7 @@ function updateCategorySelects() {
     filterSelect.innerHTML = `<option value="all">全部分类</option>${options}`
 }
 
-// 创建分类
-async function createCategory() {
+window.createCategory = async function() {
     const input = document.getElementById('newCategory')
     const name = input.value.trim()
     
@@ -137,8 +127,7 @@ async function createCategory() {
     }
 }
 
-// 删除分类
-async function deleteCategory(id) {
+window.deleteCategory = async function(id) {
     if (!confirm('确定删除该分类？照片不会删除')) return
     
     try {
@@ -156,7 +145,6 @@ async function deleteCategory(id) {
     }
 }
 
-// 上传照片
 async function handleUpload(e) {
     e.preventDefault()
     
@@ -177,12 +165,10 @@ async function handleUpload(e) {
     btn.textContent = '上传中...'
     
     try {
-        // 生成唯一文件名
         const ext = file.name.split('.').pop()
         const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
         const storagePath = `${fileName}`
         
-        // 上传文件到 Storage
         const { error: uploadError } = await supabase.storage
             .from('photo')
             .upload(storagePath, file, {
@@ -192,12 +178,10 @@ async function handleUpload(e) {
         
         if (uploadError) throw uploadError
         
-        // 获取公开 URL
         const { data: urlData } = supabase.storage
             .from('photo')
             .getPublicUrl(storagePath)
         
-        // 保存照片信息到数据库
         const { error: insertError } = await supabase
             .from('photos')
             .insert([{
@@ -211,7 +195,6 @@ async function handleUpload(e) {
         
         if (insertError) throw insertError
         
-        // 清空表单
         fileInput.value = ''
         document.getElementById('photoName').value = ''
         document.getElementById('photoDesc').value = ''
@@ -229,7 +212,6 @@ async function handleUpload(e) {
     }
 }
 
-// 获取照片公开URL
 function getPhotoUrl(storagePath) {
     const { data } = supabase.storage
         .from('photo')
@@ -237,7 +219,6 @@ function getPhotoUrl(storagePath) {
     return data.publicUrl
 }
 
-// 渲染照片
 function renderPhotos() {
     const grid = document.getElementById('photoGrid')
     const empty = document.getElementById('emptyState')
@@ -265,7 +246,7 @@ function renderPhotos() {
                             : '<span class="photo-category" style="background:#e9ecef">未分类</span>'
                         }
                         <div class="photo-actions">
-                            <button class="btn-delete" onclick="deletePhoto('${photo.id}', '${photo.storage_path}')" title="删除">🗑️</button>
+                            <button class="btn-delete" onclick="window.deletePhoto('${photo.id}', '${photo.storage_path}')" title="删除">🗑️</button>
                         </div>
                     </div>
                 </div>
@@ -274,19 +255,16 @@ function renderPhotos() {
     }).join('')
 }
 
-// 删除照片
-async function deletePhoto(id, storagePath) {
+window.deletePhoto = async function(id, storagePath) {
     if (!confirm('确定删除该照片？')) return
     
     try {
-        // 删除 Storage 中的文件
         const { error: storageError } = await supabase.storage
             .from('photo')
             .remove([storagePath])
         
         if (storageError) throw storageError
         
-        // 删除数据库记录
         const { error: deleteError } = await supabase
             .from('photos')
             .delete()
