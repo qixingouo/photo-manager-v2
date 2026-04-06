@@ -237,7 +237,6 @@ window.toggleMarkedCategories = function(event) {
     if (event) event.stopPropagation()
     const widget = document.getElementById('markedWidget')
     if (markedCategories.size === 0) {
-        alert('还没有标记任何分类')
         return
     }
     widget.classList.toggle('expanded')

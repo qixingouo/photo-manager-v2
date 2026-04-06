@@ -44,18 +44,20 @@
                 <span class="nav-icon">📁</span>
                 <span class="nav-text">分类管理</span>
             </div>
-            <div class="nav-divider"></div>
-            <div class="nav-section nav-mark" onclick="toggleMarkedCategories()">
-                <span class="nav-icon">⭐</span>
-                <span class="nav-text">已标记</span>
-                <span id="markedCount" class="nav-badge">0</span>
-            </div>
         </nav>
 
         <!-- 右侧标记分类浮窗 -->
-        <div class="marked-widget" id="markedWidget" style="display:none;">
-            <div class="marked-header">已标记的分类</div>
-            <div id="markedCategoriesList" class="marked-list"></div>
+        <div class="marked-widget" id="markedWidget" onclick="toggleMarkedCategories(event)">
+            <!-- 收起状态 -->
+            <div class="marked-collapsed">
+                <span>⭐</span>
+                <span>已标记</span>
+            </div>
+            <!-- 展开状态 -->
+            <div class="marked-content" onclick="event.stopPropagation()">
+                <div class="marked-header">已标记的分类 ⭐</div>
+                <div id="markedCategoriesList" class="marked-list"></div>
+            </div>
         </div>
 
         <!-- 上传区域 -->
