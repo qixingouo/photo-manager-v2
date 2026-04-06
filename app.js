@@ -406,64 +406,55 @@ function renderCategories() {
         return
     }
     
-    // 获取顶级分类
+    // 获取顶级分类（没有父分类的）
     const topLevel = categories.filter(c => !c.parent_id)
     
-    container.innerHTML = topLevel.map(parent => {
-        const children = categories.filter(c => c.parent_id === parent.id)
-        const isActive = currentCategory === parent.id ? 'active' : ''
-        const parentCount = photos.filter(p => {
-            const photoCats = photoCategories[p.id] || []
-            return photoCats.includes(parent.id)
-        }).length
-        const hasChildren = children.length > 0
-        
-        const childrenHtml = hasChildren ? `
-            <div class="category-children" id="children-${parent.id}">
-                ${children.map(child => {
-                    const childCount = photos.filter(p => {
-                        const photoCats = photoCategories[p.id] || []
-                        return photoCats.includes(child.id)
-                    }).length
-                    const childActive = currentCategory === child.id ? 'active' : ''
-                    return `
-                        <div class="category-tag child ${childActive}">
-                            <span onclick="filterByCategory('${child.id}')">${child.name}</span>
-                            <span class="count">${childCount}</span>
-                            <button onclick="openEditCategoryModal('${child.id}', '${child.name}')" title="编辑" style="background:none;border:none;cursor:pointer;padding:0 2px;">✏️</button>
-                            <button class="btn-danger" onclick="event.stopPropagation(); window.deleteCategory('${child.id}')" title="删除">×</button>
-                        </div>
-                    `
-                }).join('')}
-            </div>
-        ` : ''
-        
-        return `
-            <div class="category-parent">
-                <div class="category-tag ${isActive}" onclick="toggleCategoryChildren('${parent.id}', event)">
-                    <span>${parent.name}${hasChildren ? ' ▼' : ''}</span>
-                    <span class="count">${parentCount}</span>
-                    <button onclick="event.stopPropagation(); openEditCategoryModal('${parent.id}', '${parent.name}')" title="编辑" style="background:none;border:none;cursor:pointer;padding:0 2px;">✏️</button>
-                    <button class="btn-danger" onclick="event.stopPropagation(); window.deleteCategory('${parent.id}')" title="删除">×</button>
-                </div>
-                ${childrenHtml}
-            </div>
-        `
-    }).join('')
+    container.innerHTML = topLevel.map(parent => renderCategoryItem(parent, 0)).join('')
 }
 
-window.toggleCategoryChildren = function(parentId, event) {
+function renderCategoryItem(cat, level) {
+    const children = categories.filter(c => c.parent_id === cat.id)
+    const isActive = currentCategory === cat.id ? 'active' : ''
+    const hasChildren = children.length > 0
+    const indent = level * 16 // 每层缩进
+    
+    // 计算该分类的照片数量
+    const count = photos.filter(p => {
+        const photoCats = photoCategories[p.id] || []
+        return photoCats.includes(cat.id)
+    }).length
+    
+    const arrow = hasChildren ? (level === 0 ? ' ▼' : ' ▶') : ''
+    
+    const childrenHtml = hasChildren ? `
+        <div class="category-children" id="children-${cat.id}" style="display:none;">
+            ${children.map(child => renderCategoryItem(child, level + 1)).join('')}
+        </div>
+    ` : ''
+    
+    return `
+        <div class="category-item" style="padding-left:${indent}px;">
+            <div class="category-tag ${isActive}" onclick="toggleCategoryChildren('${cat.id}', event)">
+                <span>${cat.name}${arrow}</span>
+                <span class="count">${count}</span>
+                <button onclick="event.stopPropagation(); openEditCategoryModal('${cat.id}', '${cat.name}')" title="编辑" style="background:none;border:none;cursor:pointer;padding:0 2px;">✏️</button>
+                <button class="btn-danger" onclick="event.stopPropagation(); window.deleteCategory('${cat.id}')" title="删除">×</button>
+            </div>
+            ${childrenHtml}
+        </div>
+    `
+}
+
+window.toggleCategoryChildren = function(catId, event) {
     if (event) event.stopPropagation()
     
-    const childrenEl = document.getElementById('children-' + parentId)
-    const parentTag = document.querySelector('.category-parent > .category-tag')
-    
+    const childrenEl = document.getElementById('children-' + catId)
     if (!childrenEl) return
     
     const isHidden = childrenEl.style.display === 'none' || childrenEl.style.display === ''
     
     if (isHidden) {
-        childrenEl.style.display = 'flex'
+        childrenEl.style.display = 'block'
     } else {
         childrenEl.style.display = 'none'
     }

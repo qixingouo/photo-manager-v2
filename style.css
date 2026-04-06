@@ -203,6 +203,15 @@ input[type="file"] {
     font-size: 13px;
 }
 
+.category-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.category-children {
+    display: none;
+}
+
 #favoritesFilterBtn.active {
     background: #dc3545;
     color: white;
