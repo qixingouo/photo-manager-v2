@@ -81,13 +81,13 @@ function updatePhotosTitle() {
     }
 }
 
-function clearCategoryFilter() {
+window.clearCategoryFilter = function() {
     currentCategory = 'all'
     document.getElementById('filterCategory').value = 'all'
     loadPhotos()
 }
 
-function onCategoryFilterChange() {
+window.onCategoryFilterChange = function() {
     currentCategory = document.getElementById('filterCategory').value
     loadPhotos()
 }
@@ -113,7 +113,7 @@ function renderCategories() {
     }).join('')
 }
 
-function filterByCategory(categoryId) {
+window.filterByCategory = function(categoryId) {
     currentCategory = categoryId
     document.getElementById('filterCategory').value = categoryId
     loadPhotos()
