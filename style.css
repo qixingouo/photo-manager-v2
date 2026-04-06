@@ -678,3 +678,65 @@ input[type="file"] {
     margin-top: 12px;
     min-height: 20px;
 }
+
+/* 右侧浮窗 */
+.floating-widget {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1000;
+}
+
+.floating-trigger {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 24px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.floating-trigger:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.floating-menu {
+    position: absolute;
+    right: 60px;
+    top: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 140px;
+}
+
+.floating-widget:hover .floating-menu {
+    display: flex;
+}
+
+.floating-menu-item {
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.floating-menu-item:last-child {
+    border-bottom: none;
+}
+
+.floating-menu-item:hover {
+    background: #f8f9fa;
+}

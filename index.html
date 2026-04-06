@@ -33,8 +33,19 @@
             <p class="subtitle">回忆我们的从前</p>
         </header>
 
+        <!-- 右侧浮窗 -->
+        <div class="floating-widget" id="floatingWidget">
+            <div class="floating-trigger">
+                <span>📂</span>
+            </div>
+            <div class="floating-menu" id="floatingMenu">
+                <div class="floating-menu-item" onclick="toggleSection('upload')">📤 上传照片</div>
+                <div class="floating-menu-item" onclick="toggleSection('category')">📁 分类管理</div>
+            </div>
+        </div>
+
         <!-- 上传区域 -->
-        <section class="upload-section">
+        <section class="upload-section" id="uploadSection" style="display:none;">
             <h2>上传照片</h2>
             <form id="uploadForm" class="upload-form">
                 <div class="form-row">
@@ -58,7 +69,7 @@
         </section>
 
         <!-- 分类管理 -->
-        <section class="category-section">
+        <section class="category-section" id="categorySection" style="display:none;">
             <h2>分类管理</h2>
             <div class="category-controls">
                 <input type="text" id="newCategory" placeholder="新分类名称">

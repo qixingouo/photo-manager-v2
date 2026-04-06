@@ -154,6 +154,20 @@ window.handleLogout = function() {
     showLoginPage()
 }
 
+window.toggleSection = function(section) {
+    if (section === 'upload') {
+        const uploadSection = document.getElementById('uploadSection')
+        const categorySection = document.getElementById('categorySection')
+        uploadSection.style.display = uploadSection.style.display === 'none' ? 'block' : 'none'
+        categorySection.style.display = 'none'
+    } else if (section === 'category') {
+        const uploadSection = document.getElementById('uploadSection')
+        const categorySection = document.getElementById('categorySection')
+        categorySection.style.display = categorySection.style.display === 'none' ? 'block' : 'none'
+        uploadSection.style.display = 'none'
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkLogin()
     
