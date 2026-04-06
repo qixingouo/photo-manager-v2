@@ -340,6 +340,7 @@ async function loadPhotos() {
         renderCategories()
         renderPhotos()
         updatePhotosTitle()
+        updateEmptyState()
     } catch (err) {
         console.error('加载照片失败:', err)
     }
@@ -374,6 +375,51 @@ function updatePhotosTitle() {
     } else {
         titleEl.innerHTML = '📷 照片浏览'
     }
+}
+
+function updateEmptyState() {
+    const empty = document.getElementById('emptyState')
+    const photoGrid = document.getElementById('photoGrid')
+    
+    if (photos.length === 0 && currentCategory && currentCategory !== 'all') {
+        // 检查当前分类是否有子分类
+        const children = categories.filter(c => c.parent_id === currentCategory)
+        if (children.length > 0) {
+            // 显示子分类提示
+            empty.style.display = 'none'
+            photoGrid.style.display = 'none'
+            
+            // 创建或更新子分类提示区域
+            let subcatsEl = document.getElementById('subcategoriesHint')
+            if (!subcatsEl) {
+                subcatsEl = document.createElement('div')
+                subcatsEl.id = 'subcategoriesHint'
+                subcatsEl.className = 'subcategories-hint'
+                empty.parentNode.insertBefore(subcatsEl, empty)
+            }
+            
+            const cat = categories.find(c => c.id === currentCategory)
+            subcatsEl.innerHTML = `
+                <div style="text-align:center;padding:20px;">
+                    <p style="color:#666;margin-bottom:15px;">该分类暂无照片，但有子分类：</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+                        ${children.map(child => {
+                            const count = photos.filter(p => {
+                                const photoCats = photoCategories[p.id] || []
+                                return photoCats.includes(child.id)
+                            }).length
+                            return `<span class="category-tag" onclick="window.filterByCategory('${child.id}')" style="cursor:pointer;">${child.name} (${count})</span>`
+                        }).join('')}
+                    </div>
+                </div>
+            `
+            return
+        }
+    }
+    
+    // 移除子分类提示
+    const subcatsEl = document.getElementById('subcategoriesHint')
+    if (subcatsEl) subcatsEl.remove()
 }
 
 window.clearCategoryFilter = function() {
