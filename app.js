@@ -14,6 +14,7 @@ let showFavoritesOnly = false
 let currentComments = []
 let selectMode = false
 let selectedPhotos = new Set()
+let markedCategories = new Set(JSON.parse(localStorage.getItem('markedCategories') || '[]'))
 
 // 固定用户账号
 const USERS = [
@@ -183,6 +184,54 @@ window.toggleSection = function(section) {
     }
 }
 
+window.toggleMarkCategory = function(catId) {
+    if (markedCategories.has(catId)) {
+        markedCategories.delete(catId)
+    } else {
+        markedCategories.add(catId)
+    }
+    localStorage.setItem('markedCategories', JSON.stringify([...markedCategories]))
+    updateMarkedCount()
+    renderCategories()
+    renderMarkedCategoriesList()
+}
+
+function updateMarkedCount() {
+    document.getElementById('markedCount').textContent = markedCategories.size
+}
+
+window.renderMarkedCategoriesList = function() {
+    const container = document.getElementById('markedCategoriesList')
+    const widget = document.getElementById('markedWidget')
+    
+    if (markedCategories.size === 0) {
+        widget.style.display = 'none'
+        return
+    }
+    
+    widget.style.display = 'block'
+    
+    container.innerHTML = [...markedCategories].map(catId => {
+        const cat = categories.find(c => c.id === catId)
+        if (!cat) return ''
+        return `
+            <div class="marked-item" onclick="filterByCategory('${cat.id}')">
+                <span>${cat.name}</span>
+                <span class="unmark-btn" onclick="event.stopPropagation(); toggleMarkCategory('${cat.id}')">×</span>
+            </div>
+        `
+    }).join('')
+}
+
+window.toggleMarkedCategories = function() {
+    const widget = document.getElementById('markedWidget')
+    if (markedCategories.size === 0) {
+        alert('还没有标记任何分类')
+        return
+    }
+    widget.style.display = widget.style.display === 'none' ? 'block' : 'none'
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     checkLogin()
     
@@ -213,6 +262,8 @@ async function loadCategories() {
         categories = data || []
         renderCategories()
         updateCategorySelects()
+        updateMarkedCount()
+        renderMarkedCategoriesList()
     } catch (err) {
         console.error('加载分类失败:', err)
     }
@@ -589,6 +640,7 @@ function renderCategoryItem(cat, level) {
     const isActive = currentCategory === cat.id ? 'active' : ''
     const hasChildren = children.length > 0
     const indent = level * 16 // 每层缩进
+    const isMarked = markedCategories.has(cat.id)
     
     // 计算该分类的照片数量
     const count = photos.filter(p => {
@@ -607,8 +659,9 @@ function renderCategoryItem(cat, level) {
     return `
         <div class="category-item" style="padding-left:${indent}px;">
             <div class="category-tag ${isActive}" onclick="toggleCategoryChildren('${cat.id}', event)">
-                <span>${cat.name}${arrow}</span>
+                <span onclick="event.stopPropagation(); filterByCategory('${cat.id}')">${cat.name}${arrow}</span>
                 <span class="count">${count}</span>
+                <button onclick="event.stopPropagation(); toggleMarkCategory('${cat.id}')" title="${isMarked ? '取消标记' : '标记'}" style="background:none;border:none;cursor:pointer;padding:0 2px;color:${isMarked ? '#FFD700' : '#ccc'};">${isMarked ? '⭐' : '☆'}</button>
                 <button onclick="event.stopPropagation(); openEditCategoryModal('${cat.id}', '${cat.name}')" title="编辑" style="background:none;border:none;cursor:pointer;padding:0 2px;">✏️</button>
                 <button class="btn-danger" onclick="event.stopPropagation(); window.deleteCategory('${cat.id}')" title="删除">×</button>
             </div>

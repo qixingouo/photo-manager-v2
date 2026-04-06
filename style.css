@@ -679,75 +679,116 @@ input[type="file"] {
     min-height: 20px;
 }
 
-/* 顶部浮窗 - 黄金分割位置 */
-.floating-widget {
+/* 顶部导航栏 - 黄金分割 */
+.top-nav {
     position: fixed;
-    left: 61.8%;
-    top: 20px;
-    transform: translateX(-50%);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-}
-
-.floating-trigger {
-    width: 50px;
+    top: 0;
+    left: 0;
+    width: 61.8%;
     height: 50px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 50%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 24px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    transition: all 0.3s;
+    padding: 0 20px;
+    z-index: 1000;
+    box-shadow: 0 2px 15px rgba(102, 126, 234, 0.3);
 }
 
-.floating-trigger:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-}
-
-.floating-menu {
-    position: absolute;
-    top: 60px;
-    left: 0;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 25px rgba(0,0,0,0.2);
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 160px;
-}
-
-.floating-widget:hover .floating-menu {
+.nav-section {
     display: flex;
-}
-
-.floating-menu-item {
-    padding: 16px 24px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
-    white-space: nowrap;
-    font-size: 15px;
-    border-bottom: 1px solid #f0f0f0;
+    color: white;
+    font-size: 14px;
+}
+
+.nav-section:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.nav-section.active {
+    background: rgba(255,255,255,0.3);
+}
+
+.nav-icon {
+    font-size: 18px;
+}
+
+.nav-divider {
+    width: 1px;
+    height: 30px;
+    background: rgba(255,255,255,0.3);
+    margin: 0 10px;
+}
+
+.nav-badge {
+    background: #FFD700;
+    color: #764ba2;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+/* 右侧标记分类浮窗 */
+.marked-widget {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 999;
+    background: white;
+    border-radius: 16px 0 0 16px;
+    box-shadow: -4px 4px 20px rgba(0,0,0,0.15);
+    max-width: 200px;
+    overflow: hidden;
+}
+
+.marked-header {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: white;
+    padding: 12px 16px;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.marked-list {
+    padding: 8px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.marked-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    font-size: 14px;
 }
 
-.floating-menu-item:first-child {
-    padding-top: 18px;
+.marked-item:hover {
+    background: #f8f9fa;
 }
 
-.floating-menu-item:last-child {
-    padding-bottom: 18px;
-    border-bottom: none;
+.marked-item .unmark-btn {
+    opacity: 0;
+    color: #999;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
 }
 
-.floating-menu-item:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+.marked-item:hover .unmark-btn {
+    opacity: 1;
+}
+
+.marked-item .unmark-btn:hover {
+    color: #dc3545;
 }
