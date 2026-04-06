@@ -85,17 +85,23 @@ function showBirthdayWelcome() {
     `
     
     overlay.innerHTML = `
-        <div style="text-align:center;color:white;animation: scaleIn 0.8s ease;">
+        <div style="text-align:center;color:white;animation: scaleIn 0.8s ease;position:relative;">
             <div style="font-size:80px;margin-bottom:20px;">🎂</div>
             <h1 style="font-size:2rem;margin-bottom:20px;text-shadow:2px 2px 4px rgba(0,0,0,0.3);">生日快乐！</h1>
-            <h2 id="laodaText" onclick="laodaPrank()" style="font-size:4rem;margin-bottom:10px;font-weight:bold;cursor:pointer;text-shadow:3px 3px 6px rgba(0,0,0,0.3);transition: transform 0.1s;"
+            
+            <!-- 箭头提示区域 -->
+            <div id="arrowHint" style="position:absolute;top:-60px;left:50%;transform:translateX(-50%);cursor:pointer;animation: bounce 1s infinite;" onclick="hideLaoda()">
+                <div style="font-size:2rem;color:#FFD700;font-weight:bold;white-space:nowrap;margin-bottom:5px;">快点击这个老大，有惊喜 ➜</div>
+            </div>
+            
+            <h2 id="laodaText" onclick="laodaPrank()" style="font-size:5rem;margin-bottom:10px;font-weight:bold;cursor:pointer;text-shadow:3px 3px 6px rgba(0,0,0,0.3);transition: all 0.3s;"
                 onmouseover="this.style.transform='scale(1.1)'" 
                 onmouseout="this.style.transform='scale(1)'">
                 老大 🎉
             </h2>
             <p id="prankText" style="font-size:1.5rem;opacity:0;margin-bottom:30px;transition: opacity 0.3s;color:#FFD700;font-weight:bold;"></p>
-            <p style="font-size:1.3rem;opacity:0.9;margin-bottom:40px;text-shadow:1px 1px 2px rgba(0,0,0,0.3);">老大万岁万岁万万岁≧▽≦</p>
-            <button onclick="enterMainApp()" style="
+            <p id="wishText" style="font-size:1.3rem;opacity:0.9;margin-bottom:40px;text-shadow:1px 1px 2px rgba(0,0,0,0.3);">老大万岁万岁万万岁≧▽≦</p>
+            <button id="enterBtn" onclick="enterMainApp()" style="
                 padding: 15px 50px;
                 font-size: 1.2rem;
                 background: white;
@@ -114,10 +120,32 @@ function showBirthdayWelcome() {
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
             @keyframes scaleIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
             @keyframes shake { 0%, 100% { transform: translateX(0) scale(1); } 25% { transform: translateX(-10px) scale(0.3); } 50% { transform: translateX(10px) scale(0.3); } 75% { transform: translateX(-5px) scale(0.3); } }
+            @keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-10px); } }
+            @keyframes laodaHide { to { transform: scale(0) rotate(720deg); opacity: 0; } }
         </style>
     `
     
     document.body.appendChild(overlay)
+}
+
+window.hideLaoda = function() {
+    const laodaText = document.getElementById('laodaText')
+    const arrowHint = document.getElementById('arrowHint')
+    const wishText = document.getElementById('wishText')
+    const prankText = document.getElementById('prankText')
+    
+    // 老大消失动画
+    laodaText.style.animation = 'laodaHide 0.8s ease forwards'
+    arrowHint.style.display = 'none'
+    
+    // 显示小弟文字
+    setTimeout(() => {
+        laodaText.style.display = 'none'
+        prankText.textContent = '你是小弟嘻嘻嘻'
+        prankText.style.opacity = '1'
+        prankText.style.fontSize = '2.5rem'
+        wishText.style.display = 'none'
+    }, 800)
 }
 
 window.laodaPrank = function() {
