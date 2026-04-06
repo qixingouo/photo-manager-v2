@@ -17,8 +17,8 @@ let selectedPhotos = new Set()
 
 // 固定用户账号
 const USERS = [
-    { username: 'laoda', password: 'lxyajwr06225！' },
-    { username: 'xiaodi', password: 'lxyajwr06225！' }
+    { username: 'laoda', password: 'lxyajwr06225' },
+    { username: 'xiaodi', password: 'lxyajwr06225' }
 ]
 
 // 检查登录状态
