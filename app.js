@@ -51,7 +51,7 @@ async function loadPhotos() {
     try {
         let query = supabase
             .from('photos')
-            .select('*, categories(name)')
+            .select('*')
             .order('created_at', { ascending: false })
         
         if (showFavoritesOnly) {
@@ -68,40 +68,15 @@ async function loadPhotos() {
         
         photos = data || []
         
-        // 如果有分类筛选
+        // 先加载所有照片的分类关联
+        await loadAllPhotoCategories()
+        
+        // 如果有分类筛选，只显示该分类的照片
         if (currentCategory && currentCategory !== 'all') {
-            // 获取该分类及其子分类的所有照片ID
             const categoryIds = getCategoryAndChildrenIds(currentCategory)
             photos = photos.filter(p => {
                 const photoCats = photoCategories[p.id] || []
                 return categoryIds.some(cid => photoCats.includes(cid))
-            })
-        }
-        
-        // 如果有分类筛选，只显示该分类的照片
-        if (currentCategory && currentCategory !== 'all' && !showFavoritesOnly) {
-            // 需要获取每个照片的分类信息
-            const photoIds = photos.map(p => p.id)
-            if (photoIds.length > 0) {
-                const { data: pcData } = await supabase
-                    .from('photo_categories')
-                    .select('photo_id, category_id')
-                    .in('photo_id', photoIds)
-                
-                photoCategories = {}
-                if (pcData) {
-                    pcData.forEach(pc => {
-                        if (!photoCategories[pc.photo_id]) {
-                            photoCategories[pc.photo_id] = []
-                        }
-                        photoCategories[pc.photo_id].push(pc.category_id)
-                    })
-                }
-            }
-            
-            photos = photos.filter(p => {
-                const photoCats = photoCategories[p.id] || []
-                return photoCats.includes(currentCategory)
             })
         }
         
@@ -743,6 +718,11 @@ function renderPhotos() {
     grid.style.display = 'grid'
     empty.style.display = 'none'
     
+    // 如果有照片但还没有加载分类关联，先加载
+    if (Object.keys(photoCategories).length === 0 && photos.length > 0) {
+        loadAllPhotoCategories()
+    }
+    
     grid.innerHTML = photos.map(photo => {
         const photoUrl = getPhotoUrl(photo.storage_path)
         const favoriteIcon = photo.is_favorite ? '❤️' : '🤍'
@@ -752,6 +732,17 @@ function renderPhotos() {
                 <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); togglePhotoSelect('${photo.id}')">
             </div>
         ` : ''
+        
+        // 从 photoCategories 映射获取分类名称
+        const photoCats = photoCategories[photo.id] || []
+        const catNames = photoCats.map(cid => {
+            const cat = categories.find(c => c.id === cid)
+            return cat ? cat.name : ''
+        }).filter(n => n)
+        const categoryHtml = catNames.length > 0 
+            ? `<span class="photo-category">${catNames.join(', ')}</span>` 
+            : '<span class="photo-category" style="background:#e9ecef">未分类</span>'
+        
         return `
             <div class="photo-card ${isSelected ? 'selected' : ''}" onclick="${selectMode ? "event.stopPropagation(); togglePhotoSelect('" + photo.id + "')" : "openPhotoModal('" + photo.id + "')"}">
                 ${checkboxHtml}
@@ -760,10 +751,7 @@ function renderPhotos() {
                     <h3 title="${photo.name}">${favoriteIcon} ${photo.name}</h3>
                     ${photo.description ? `<p>${photo.description}</p>` : ''}
                     <div class="photo-meta">
-                        ${photo.categories 
-                            ? `<span class="photo-category">${photo.categories.name}</span>` 
-                            : '<span class="photo-category" style="background:#e9ecef">未分类</span>'
-                        }
+                        ${categoryHtml}
                         ${selectMode ? '' : `<div class="photo-actions" onclick="event.stopPropagation()">
                             <button class="btn-delete" onclick="window.deletePhoto('${photo.id}', '${photo.storage_path}')" title="删除">🗑️</button>
                         </div>`}
@@ -772,6 +760,27 @@ function renderPhotos() {
             </div>
         `
     }).join('')
+}
+
+async function loadAllPhotoCategories() {
+    try {
+        const { data } = await supabase
+            .from('photo_categories')
+            .select('photo_id, category_id')
+        
+        if (data) {
+            data.forEach(pc => {
+                if (!photoCategories[pc.photo_id]) {
+                    photoCategories[pc.photo_id] = []
+                }
+                if (!photoCategories[pc.photo_id].includes(pc.category_id)) {
+                    photoCategories[pc.photo_id].push(pc.category_id)
+                }
+            })
+        }
+    } catch (err) {
+        console.error('加载照片分类关联失败:', err)
+    }
 }
 
 window.openPhotoModal = async function(photoId) {
