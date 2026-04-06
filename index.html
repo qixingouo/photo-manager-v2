@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📷 照片分类管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📷 照片分类管理系统</h1>
+            <p class="subtitle">管理你的照片资产</p>
+        </header>
+
+        <!-- 上传区域 -->
+        <section class="upload-section">
+            <h2>上传照片</h2>
+            <form id="uploadForm" class="upload-form">
+                <div class="form-row">
+                    <input type="file" id="photoInput" accept="image/*" required>
+                    <select id="categorySelect" class="category-select">
+                        <option value="">选择分类（可选）</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="text" id="photoName" placeholder="照片名称（可选）">
+                    <input type="text" id="photoDesc" placeholder="照片描述（可选）">
+                </div>
+                <button type="submit" class="btn btn-primary">上传</button>
+            </form>
+        </section>
+
+        <!-- 分类管理 -->
+        <section class="category-section">
+            <h2>分类管理</h2>
+            <div class="category-controls">
+                <input type="text" id="newCategory" placeholder="新分类名称">
+                <button onclick="createCategory()" class="btn btn-secondary">添加分类</button>
+            </div>
+            <div id="categoryList" class="category-list"></div>
+        </section>
+
+        <!-- 照片浏览 -->
+        <section class="photos-section">
+            <div class="photos-header">
+                <h2>照片浏览</h2>
+                <div class="photos-controls">
+                    <input type="text" id="searchInput" placeholder="🔍 搜索照片...">
+                    <select id="filterCategory" onchange="loadPhotos()">
+                        <option value="all">全部分类</option>
+                    </select>
+                </div>
+            </div>
+            <div id="photoGrid" class="photo-grid"></div>
+            <div id="emptyState" class="empty-state" style="display:none;">
+                <p>📭 暂无照片</p>
+                <small>上传一些照片开始管理吧</small>
+            </div>
+        </section>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
