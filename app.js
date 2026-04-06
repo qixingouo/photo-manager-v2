@@ -89,13 +89,12 @@ function showBirthdayWelcome() {
             <div style="font-size:80px;margin-bottom:20px;">🎂</div>
             <h1 style="font-size:2rem;margin-bottom:20px;text-shadow:2px 2px 4px rgba(0,0,0,0.3);">生日快乐！</h1>
             
-            <!-- 箭头提示区域 - 放在老大左边 -->
-            <div id="arrowHint" style="position:absolute;top:50%;left:-120px;transform:translateY(-100%);cursor:pointer;animation: arrowPoint 1s infinite;" onclick="hideLaoda()">
-                <div style="font-size:1.5rem;color:#FFD700;font-weight:bold;white-space:nowrap;text-shadow:1px 1px 2px rgba(0,0,0,0.3);">➜ 快点击这个老大</div>
-                <div style="font-size:1.5rem;color:#FFD700;font-weight:bold;text-shadow:1px 1px 2px rgba(0,0,0,0.3);">有惊喜</div>
+            <!-- 箭头提示区域 - 放在老大上方 -->
+            <div id="arrowHint" style="position:absolute;top:-30px;left:50%;transform:translateX(-50%);cursor:pointer;animation: arrowBounce 1s infinite;" onclick="hideLaoda()">
+                <div style="font-size:3rem;text-shadow:2px 2px 4px rgba(0,0,0,0.3);">⬇</div>
             </div>
             
-            <h2 id="laodaText" onclick="hideLaoda()" style="font-size:5rem;margin-bottom:10px;font-weight:bold;cursor:pointer;text-shadow:3px 3px 6px rgba(0,0,0,0.3);transition: all 0.3s;display:inline-block;"
+            <h2 id="laodaText" onclick="hideLaoda()" style="font-size:6rem;margin-bottom:10px;font-weight:bold;cursor:pointer;text-shadow:4px 4px 8px rgba(0,0,0,0.3);transition: all 0.3s;display:inline-block;"
                 onmouseover="this.style.transform='scale(1.1)'" 
                 onmouseout="this.style.transform='scale(1)'">
                 老大 🎉
@@ -120,9 +119,9 @@ function showBirthdayWelcome() {
         <style>
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
             @keyframes scaleIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-            @keyframes arrowPoint { 0%, 100% { transform: translateY(-100%) translateX(0); } 50% { transform: translateY(-100%) translateX(10px); } }
+            @keyframes arrowBounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(15px); } }
             @keyframes laodaSpin { to { transform: rotate(720deg) scale(0); opacity: 0; } }
-            @keyframes arrowFade { to { opacity: 0; transform: translateY(-100%) scale(0.5); } }
+            @keyframes arrowFade { to { opacity: 0; transform: translateX(-50%) scale(0.5); } }
         </style>
     `
     
