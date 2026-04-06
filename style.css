@@ -739,13 +739,24 @@ input[type="file"] {
     position: fixed;
     right: 0;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) translateX(calc(100% - 30px));
     z-index: 999;
     background: white;
     border-radius: 16px 0 0 16px;
     box-shadow: -4px 4px 20px rgba(0,0,0,0.15);
     max-width: 200px;
     overflow: hidden;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.marked-widget.expanded {
+    transform: translateY(-50%) translateX(0);
+    cursor: default;
+}
+
+.marked-widget:not(.expanded) {
+    border-radius: 16px 0 0 16px;
 }
 
 .marked-header {
@@ -755,6 +766,12 @@ input[type="file"] {
     font-weight: bold;
     font-size: 14px;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .marked-list {

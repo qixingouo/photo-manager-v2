@@ -223,13 +223,14 @@ window.renderMarkedCategoriesList = function() {
     }).join('')
 }
 
-window.toggleMarkedCategories = function() {
+window.toggleMarkedCategories = function(event) {
+    if (event) event.stopPropagation()
     const widget = document.getElementById('markedWidget')
     if (markedCategories.size === 0) {
         alert('还没有标记任何分类')
         return
     }
-    widget.style.display = widget.style.display === 'none' ? 'block' : 'none'
+    widget.classList.toggle('expanded')
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1354,4 +1355,14 @@ document.getElementById('editCategoryModal').addEventListener('click', (e) => {
 
 document.getElementById('batchCategoryModal').addEventListener('click', (e) => {
     if (e.target.id === 'batchCategoryModal') closeBatchCategoryModal()
+})
+
+// 点击外部收起已标记浮窗
+document.addEventListener('click', (e) => {
+    const widget = document.getElementById('markedWidget')
+    if (widget && widget.classList.contains('expanded')) {
+        if (!widget.contains(e.target)) {
+            widget.classList.remove('expanded')
+        }
+    }
 })
