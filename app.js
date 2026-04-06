@@ -224,30 +224,14 @@ window.renderMarkedCategoriesList = function() {
     
     widget.style.display = 'block'
     
-    // 过滤出仍然存在的分类
-    const validCats = [...markedCategories].filter(catId => {
-        return categories.some(c => c.id === catId)
-    })
-    
-    // 如果有无效的分类ID，清除它们
-    if (validCats.length !== markedCategories.size) {
-        markedCategories = new Set(validCats)
-        localStorage.setItem('markedCategories', JSON.stringify(validCats))
-        updateMarkedCount()
-    }
-    
-    if (validCats.length === 0) {
-        widget.style.display = 'none'
-        return
-    }
-    
-    container.innerHTML = validCats.map(catId => {
+    // 显示所有标记的分类，不过滤（因为categories可能还没加载完）
+    container.innerHTML = [...markedCategories].map(catId => {
         const cat = categories.find(c => c.id === catId)
-        if (!cat) return ''
+        const displayName = cat ? cat.name : '未知分类'
         return `
-            <div class="marked-item" onclick="window.filterByCategory('${cat.id}')">
-                <span>${cat.name}</span>
-                <span class="unmark-btn" onclick="event.stopPropagation(); window.toggleMarkCategory('${cat.id}')">×</span>
+            <div class="marked-item" onclick="window.filterByCategory('${catId}')">
+                <span>${displayName}</span>
+                <span class="unmark-btn" onclick="event.stopPropagation(); window.toggleMarkCategory('${catId}')">×</span>
             </div>
         `
     }).join('')
@@ -285,6 +269,19 @@ async function loadCategories() {
         if (error) throw error
         
         categories = data || []
+        
+        // 清理已删除的标记分类
+        if (markedCategories.size > 0) {
+            const validCats = [...markedCategories].filter(catId => {
+                return categories.some(c => c.id === catId)
+            })
+            if (validCats.length !== markedCategories.size) {
+                markedCategories = new Set(validCats)
+                localStorage.setItem('markedCategories', JSON.stringify(validCats))
+                updateMarkedCount()
+            }
+        }
+        
         renderCategories()
         updateCategorySelects()
         updateMarkedCount()
