@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     
     document.getElementById('uploadForm').addEventListener('submit', handleUpload)
+    document.getElementById('editForm').addEventListener('submit', window.handleEdit)
 })
 
 async function loadCategories() {
@@ -974,7 +975,7 @@ window.closeEditModal = function() {
     document.getElementById('editModal').classList.remove('active')
 }
 
-async function handleEdit(e) {
+window.handleEdit = async function(e) {
     e.preventDefault()
     
     const id = document.getElementById('editPhotoId').value
