@@ -341,7 +341,15 @@ const mobile = {
         let successCount = 0;
         
         for (let i = 0; i < total; i++) {
-            const file = this.previewFiles[i];
+            let file = this.previewFiles[i];
+            
+            // 压缩超过1.5MB的图片
+            if (file.size > 1.5 * 1024 * 1024) {
+                this.showToast(`压缩第 ${i + 1} 张图片...`);
+                file = await this.compressImage(file, 1.5);
+                this.showToast(`压缩完成: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+            }
+            
             const fileName = namePrefix ? `${namePrefix}_${i + 1}` : file.name;
             const ext = file.name.split('.').pop();
             const uniqueName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
@@ -838,6 +846,61 @@ const mobile = {
         setTimeout(() => {
             toast.classList.remove('show');
         }, 2000);
+    },
+
+    // ========================================
+    // 图片压缩
+    // ========================================
+    compressImage(file, maxSizeMB) {
+        return new Promise((resolve) => {
+            const maxSize = maxSizeMB * 1024 * 1024;
+            
+            // 如果文件小于限制，直接返回
+            if (file.size <= maxSize) {
+                resolve(file);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // 计算压缩比例
+                    const ratio = Math.sqrt(maxSize / file.size);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob.size > file.size) {
+                                // 如果压缩后更大，返回原文件
+                                resolve(file);
+                            } else {
+                                // 返回压缩后的文件
+                                resolve(new File([blob], file.name, {
+                                    type: file.type,
+                                    lastModified: Date.now()
+                                }));
+                            }
+                        },
+                        file.type,
+                        0.85
+                    );
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
     }
 };
 
