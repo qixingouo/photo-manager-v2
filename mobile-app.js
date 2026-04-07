@@ -19,6 +19,15 @@ const mobile = {
     SUPABASE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w',
     STORAGE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co/storage/v1/object/public/photo/',
+    supabase: null,
+    
+    // 初始化 Supabase 客户端
+    initSupabase() {
+        if (!this.supabase) {
+            this.supabase = window.supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+        }
+        return this.supabase;
+    },
     
     // 获取照片公开URL
     getPhotoUrl(storagePath) {
@@ -26,10 +35,25 @@ const mobile = {
         return this.STORAGE_URL + storagePath;
     },
 
+    // 等待 Supabase CDN 加载完成
+    waitForSupabase(callback, retries = 0) {
+        if (typeof window.supabase !== 'undefined') {
+            callback();
+        } else if (retries < 50) {
+            setTimeout(() => this.waitForSupabase(callback, retries + 1), 100);
+        } else {
+            console.error('Supabase 加载超时');
+            callback(); // 继续执行，以防万一
+        }
+    },
+    
     // 初始化
     init() {
-        this.checkLogin();
-        this.loadMarkedCategories();
+        // 等待 Supabase CDN 加载完成后再初始化
+        this.waitForSupabase(() => {
+            this.checkLogin();
+            this.loadMarkedCategories();
+        });
     },
 
     // ========================================
@@ -298,21 +322,57 @@ const mobile = {
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
         const uploadBtn = document.getElementById('uploadBtn');
+        const supabase = this.initSupabase();
 
         progressSection.style.display = 'block';
         uploadBtn.disabled = true;
         uploadBtn.textContent = '上传中...';
 
         const total = this.previewFiles.length;
+        const namePrefix = document.getElementById('mobilePhotoName').value.trim();
+        const description = document.getElementById('mobilePhotoDesc').value.trim();
+        const categoryId = document.getElementById('mobileCategorySelect').value;
+        
+        let successCount = 0;
         
         for (let i = 0; i < total; i++) {
             const file = this.previewFiles[i];
+            const fileName = namePrefix ? `${namePrefix}_${i + 1}` : file.name;
+            const ext = file.name.split('.').pop();
+            const uniqueName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
+            
+            try {
+                // 上传到 Supabase Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('photo')
+                    .upload(uniqueName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (uploadError) throw uploadError;
+                
+                // 保存到 photos 表
+                const { error: insertError } = await supabase
+                    .from('photos')
+                    .insert([{
+                        name: fileName,
+                        description: description,
+                        storage_path: uniqueName,
+                        original_name: file.name,
+                        size: file.size,
+                        is_favorite: false
+                    }]);
+                
+                if (insertError) throw insertError;
+                successCount++;
+            } catch (err) {
+                console.error('上传失败:', err);
+            }
+            
             const percent = Math.round(((i + 1) / total) * 100);
             progressFill.style.width = percent + '%';
             progressText.textContent = percent + '%';
-
-            // 模拟上传延迟
-            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         // 重置
@@ -323,7 +383,9 @@ const mobile = {
         uploadBtn.textContent = '上传照片';
 
         this.clearPreviews();
-        this.showToast(`成功上传 ${total} 张照片`);
+        document.getElementById('mobilePhotoName').value = '';
+        document.getElementById('mobilePhotoDesc').value = '';
+        this.showToast(`成功上传 ${successCount} 张照片`);
         
         // 重新加载照片
         await this.loadPhotos();
