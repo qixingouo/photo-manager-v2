@@ -461,6 +461,12 @@ body {
     box-shadow: var(--shadow);
 }
 
+.cascade-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
 .form-item {
     margin-bottom: 16px;
 }

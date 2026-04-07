@@ -336,7 +336,7 @@ const mobile = {
         const total = this.previewFiles.length;
         const namePrefix = document.getElementById('mobilePhotoName').value.trim();
         const description = document.getElementById('mobilePhotoDesc').value.trim();
-        const categoryId = document.getElementById('mobileCategorySelect').value;
+        const categoryId = this.getSelectedUploadCategoryId();
         
         let successCount = 0;
         
@@ -390,6 +390,7 @@ const mobile = {
         this.clearPreviews();
         document.getElementById('mobilePhotoName').value = '';
         document.getElementById('mobilePhotoDesc').value = '';
+        this.renderUploadCategoryCascade();
         this.showToast(`成功上传 ${successCount} 张照片`);
         
         // 重新加载照片
@@ -401,56 +402,120 @@ const mobile = {
     // 分类相关
     // ========================================
     updateCategorySelects() {
-        const selects = ['mobileCategorySelect', 'parentCategorySelect', 'mobileFilterCategory'];
-        selects.forEach(id => {
-            const select = document.getElementById(id);
-            if (!select) return;
-            
-            const hasAllOption = id === 'mobileFilterCategory';
-            select.innerHTML = hasAllOption 
-                ? '<option value="all">全部分类</option>'
-                : '<option value="">选择分类（可选）</option>';
-            
+        // 只更新 filterCategory 下拉框（扁平列表）
+        const filterSelect = document.getElementById('mobileFilterCategory');
+        if (filterSelect) {
+            filterSelect.innerHTML = '<option value="all">全部分类</option>';
             this.categories.forEach(cat => {
-                select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+                filterSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
             });
+        }
+        
+        // 更新父分类选择器（扁平列表）
+        const parentSelect = document.getElementById('parentCategorySelect');
+        if (parentSelect) {
+            parentSelect.innerHTML = '<option value="">无父分类</option>';
+            this.categories.forEach(cat => {
+                parentSelect.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+            });
+        }
+        
+        // 渲染上传页面的级联分类选择器
+        this.renderUploadCategoryCascade();
+    },
+
+    // 渲染上传页面的级联分类选择器
+    renderUploadCategoryCascade() {
+        const container = document.getElementById('mobileUploadCategoryCascade');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const topLevel = this.categories.filter(c => !c.parent_id);
+        if (topLevel.length === 0) {
+            container.innerHTML = '<p style="color:#999;font-size:13px;">暂无分类</p>';
+            return;
+        }
+        
+        const select = document.createElement('select');
+        select.id = 'mobileUploadCatLevel0';
+        select.style.cssText = 'width:100%;padding:12px 16px;border:1px solid #e9ecef;border-radius:10px;font-size:15px;background:white;';
+        select.onchange = () => this.onUploadCatLevelChange(0);
+        select.innerHTML = `<option value="">选择分类（可选）</option>${topLevel.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}`;
+        container.appendChild(select);
+    },
+
+    onUploadCatLevelChange(level) {
+        const container = document.getElementById('mobileUploadCategoryCascade');
+        if (!container) return;
+        const select = document.getElementById(`mobileUploadCatLevel${level}`);
+        if (!select) return;
+        
+        const selectedValue = select.value;
+        
+        // 删除高于当前级别的选择器
+        const selects = container.querySelectorAll('select');
+        selects.forEach((s, i) => {
+            if (i > level) s.remove();
         });
+        
+        // 如果选中了某个分类，显示其子分类作为下一级
+        if (selectedValue) {
+            const children = this.categories.filter(c => c.parent_id === selectedValue);
+            if (children.length > 0) {
+                const nextLevel = level + 1;
+                const nextSelect = document.createElement('select');
+                nextSelect.id = `mobileUploadCatLevel${nextLevel}`;
+                nextSelect.style.cssText = 'width:100%;padding:12px 16px;border:1px solid #e9ecef;border-radius:10px;font-size:15px;background:white;margin-top:8px;';
+                nextSelect.onchange = () => this.onUploadCatLevelChange(nextLevel);
+                nextSelect.innerHTML = `<option value="">选择子分类</option>${children.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}`;
+                container.appendChild(nextSelect);
+            }
+        }
+    },
+
+    getSelectedUploadCategoryId() {
+        const container = document.getElementById('mobileUploadCategoryCascade');
+        if (!container) return null;
+        const selects = container.querySelectorAll('select');
+        for (let i = selects.length - 1; i >= 0; i--) {
+            if (selects[i].value) return selects[i].value;
+        }
+        return null;
     },
 
     renderCategories() {
         const list = document.getElementById('categoryList');
         const rootCategories = this.categories.filter(c => !c.parent_id);
 
-        list.innerHTML = rootCategories.map(cat => this.renderCategoryItem(cat)).join('');
+        list.innerHTML = rootCategories.map(cat => this.renderCategoryItem(cat, 0)).join('');
 
         if (rootCategories.length === 0) {
             list.innerHTML = '<div class="empty-state"><span class="empty-icon">📁</span><p>暂无分类</p></div>';
         }
     },
 
-    renderCategoryItem(cat) {
+    renderCategoryItem(cat, level) {
         const children = this.categories.filter(c => c.parent_id === cat.id);
         const isMarked = this.markedCategories.includes(cat.id);
+        const indent = level * 16;
+        const arrow = children.length > 0 ? '<span class="category-arrow">›</span>' : '';
+        const icon = level === 0 ? (isMarked ? '⭐' : '📁') : '📄';
 
         return `
-            <div class="category-item" id="cat-${cat.id}">
+            <div class="category-item" id="cat-${cat.id}" style="padding-left:${indent}px;">
                 <div class="category-header" onclick="mobile.toggleCategory(${cat.id})">
                     <div class="category-name">
-                        <span>${isMarked ? '⭐' : '📁'}</span>
+                        <span>${icon}</span>
                         <span>${cat.name}</span>
-                        ${children.length > 0 ? '<span class="category-arrow">›</span>' : ''}
+                        ${arrow}
                     </div>
                 </div>
                 ${children.length > 0 ? `
-                    <div class="category-children">
-                        ${children.map(child => `
-                            <div class="child-category" onclick="mobile.selectCategory(${child.id})">
-                                📄 ${child.name}
-                            </div>
-                        `).join('')}
+                    <div class="category-children" id="children-${cat.id}">
+                        ${children.map(child => this.renderCategoryItem(child, level + 1)).join('')}
                     </div>
                 ` : ''}
-                <div class="category-actions">
+                <div class="category-actions" id="actions-${cat.id}" style="display:none;">
                     <button class="btn-secondary" onclick="mobile.markCategory(${cat.id})">
                         ${isMarked ? '⭐ 已标记' : '☆ 标记'}
                     </button>
@@ -464,7 +529,17 @@ const mobile = {
 
     toggleCategory(id) {
         const item = document.getElementById(`cat-${id}`);
-        item.classList.toggle('expanded');
+        const children = document.getElementById(`children-${id}`);
+        const actions = document.getElementById(`actions-${id}`);
+        
+        // 切换子分类显示
+        if (children) {
+            children.style.display = children.style.display === 'none' ? 'block' : 'none';
+        }
+        // 切换操作按钮显示
+        if (actions) {
+            actions.style.display = actions.style.display === 'none' ? 'flex' : 'none';
+        }
     },
 
     showAddCategory() {
