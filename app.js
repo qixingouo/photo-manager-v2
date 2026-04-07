@@ -342,8 +342,8 @@ async function loadPhotos() {
             const categoryIds = getCategoryAndChildrenIds(currentCategory)
             if (categoryIds.length > 0) {
                 photos = photos.filter(p => {
-                    const photoCats = photoCategories[p.id] || []
-                    return categoryIds.some(cid => photoCats.includes(Number(cid)))
+                    const photoCats = photoCategories[String(p.id)] || []
+                    return categoryIds.some(cid => photoCats.includes(String(cid)))
                 })
             }
         }
@@ -421,8 +421,8 @@ function updateEmptyState() {
                     <div style="display:flex;flex-wrap:wrap;gap:15px;justify-content:center;">
                         ${children.map((child, i) => {
                             const count = photos.filter(p => {
-                                const photoCats = photoCategories[p.id] || []
-                                return photoCats.includes(child.id)
+                                const photoCats = photoCategories[String(p.id)] || []
+                                return photoCats.includes(String(child.id))
                             }).length
                             const color = colors[i % colors.length]
                             return `<span class="category-tag" onclick="window.filterByCategory('${child.id}')" 
@@ -457,8 +457,8 @@ window.clearCategoryFilter = function() {
         select.onchange = () => onFilterCatLevelChange(0)
         select.innerHTML = `<option value="all">全部分类</option>${topLevel.map(cat => {
             const count = photos.filter(p => {
-                const photoCats = photoCategories[p.id] || []
-                return photoCats.includes(cat.id)
+                const photoCats = photoCategories[String(p.id)] || []
+                return photoCats.includes(String(cat.id))
             }).length
             return `<option value="${cat.id}">${cat.name} (${count})</option>`
         }).join('')}`
@@ -658,7 +658,7 @@ window.batchAddCategories = async function() {
     for (const photoId of selectedPhotos) {
         try {
             // 获取当前分类
-            const currentCats = photoCategories[photoId] || []
+            const currentCats = photoCategories[String(photoId)] || []
             
             // 添加新分类
             const newCats = [...new Set([...currentCats, ...selectedCategories])]
@@ -773,8 +773,8 @@ function renderCategorySelect() {
     select.onchange = () => onFilterCatLevelChange(0)
     select.innerHTML = `<option value="all">全部分类</option>${topLevel.map(cat => {
         const count = photos.filter(p => {
-            const photoCats = photoCategories[p.id] || []
-            return photoCats.includes(cat.id)
+            const photoCats = photoCategories[String(p.id)] || []
+            return photoCats.includes(String(cat.id))
         }).length
         return `<option value="${cat.id}">${cat.name} (${count})</option>`
     }).join('')}`
@@ -808,8 +808,8 @@ function rebuildFilterCascade(categoryId) {
         const selectedValue = index === path.length - 1 ? catId : ''
         select.innerHTML = `<option value="">选择分类</option>${cats.map(cat => {
             const count = photos.filter(p => {
-                const photoCats = photoCategories[p.id] || []
-                return photoCats.includes(cat.id)
+                const photoCats = photoCategories[String(p.id)] || []
+                return photoCats.includes(String(cat.id))
             }).length
             const selected = cat.id === catId ? 'selected' : ''
             return `<option value="${cat.id}" ${selected}>${cat.name} (${count})</option>`
@@ -863,8 +863,8 @@ function onFilterCatLevelChange(level) {
             nextSelect.onchange = () => onFilterCatLevelChange(nextLevel)
             nextSelect.innerHTML = `<option value="">选择子分类</option>${children.map(cat => {
                 const count = photos.filter(p => {
-                    const photoCats = photoCategories[p.id] || []
-                    return photoCats.includes(cat.id)
+                    const photoCats = photoCategories[String(p.id)] || []
+                    return photoCats.includes(String(cat.id))
                 }).length
                 return `<option value="${cat.id}">${cat.name} (${count})</option>`
             }).join('')}`
@@ -884,8 +884,8 @@ function renderCategoryItem(cat, level) {
     
     // 计算该分类的照片数量
     const count = photos.filter(p => {
-        const photoCats = photoCategories[p.id] || []
-        return photoCats.includes(cat.id)
+        const photoCats = photoCategories[String(p.id)] || []
+        return photoCats.includes(String(cat.id))
     }).length
     
     // 获取当前展开状态（使用管理区域的展开状态）
@@ -1407,7 +1407,7 @@ async function loadPhotoCategories(photoId) {
             .eq('photo_id', photoId)
         
         if (data) {
-            photoCategories[photoId] = data.map(d => d.category_id)
+            photoCategories[String(photoId)] = data.map(d => String(d.category_id))
         }
     } catch (err) {
         console.error('加载照片分类失败:', err)
@@ -1493,8 +1493,8 @@ function renderPhotos() {
     let filteredPhotos = photos
     if (currentCategory && currentCategory !== 'all') {
         filteredPhotos = photos.filter(photo => {
-            const photoCats = photoCategories[photo.id] || []
-            return photoCats.includes(parseInt(currentCategory))
+            const photoCats = photoCategories[String(photo.id)] || []
+            return photoCats.includes(String(currentCategory))
         })
     }
     
@@ -1506,8 +1506,8 @@ function renderPhotos() {
         if (childCategories.length > 0) {
             grid.innerHTML = childCategories.map(cat => {
                 const catPhotos = photos.filter(photo => {
-                    const photoCats = photoCategories[photo.id] || []
-                    return photoCats.includes(cat.id)
+                    const photoCats = photoCategories[String(photo.id)] || []
+                    return photoCats.includes(String(cat.id))
                 })
                 const photoCount = catPhotos.length
                 return `
@@ -1543,9 +1543,9 @@ function renderPhotos() {
         ` : ''
         
         // 从 photoCategories 映射获取分类名称
-        const photoCats = photoCategories[photo.id] || []
+        const photoCats = photoCategories[String(photo.id)] || []
         const catNames = photoCats.map(cid => {
-            const cat = categories.find(c => c.id === cid)
+            const cat = categories.find(c => String(c.id) === cid)
             return cat ? cat.name : ''
         }).filter(n => n)
         const categoryHtml = catNames.length > 0 
@@ -1582,11 +1582,13 @@ async function loadAllPhotoCategories() {
         
         if (data) {
             data.forEach(pc => {
-                if (!photoCategories[pc.photo_id]) {
-                    photoCategories[pc.photo_id] = []
+                const photoId = String(pc.photo_id)
+                const catId = String(pc.category_id)
+                if (!photoCategories[photoId]) {
+                    photoCategories[photoId] = []
                 }
-                if (!photoCategories[pc.photo_id].includes(pc.category_id)) {
-                    photoCategories[pc.photo_id].push(pc.category_id)
+                if (!photoCategories[photoId].includes(catId)) {
+                    photoCategories[photoId].push(catId)
                 }
             })
         }
@@ -1614,10 +1616,10 @@ window.openPhotoModal = async function(photoId) {
     
     // 显示分类
     const categoryEl = document.getElementById('modalPhotoCategory')
-    const photoCats = photoCategories[photoId] || []
+    const photoCats = photoCategories[String(photoId)] || []
     if (photoCats.length > 0) {
         const catNames = photoCats.map(cid => {
-            const cat = categories.find(c => c.id === cid)
+            const cat = categories.find(c => String(c.id) === cid)
             return cat ? cat.name : ''
         }).filter(n => n).join(', ')
         categoryEl.textContent = catNames || '未分类'
@@ -1694,13 +1696,13 @@ window.openCategoryModal = function() {
     if (!currentPhoto) return
     
     const container = document.getElementById('categoryCheckboxList')
-    const photoCats = photoCategories[currentPhoto.id] || []
+    const photoCats = photoCategories[String(currentPhoto.id)] || []
     const noCatCheckbox = document.getElementById('noCategoryCheck')
     noCatCheckbox.checked = photoCats.length === 0
     
     container.innerHTML = categories.map(cat => `
         <label class="category-option">
-            <input type="checkbox" name="photoCategory" value="${cat.id}" ${photoCats.includes(cat.id) ? 'checked' : ''}>
+            <input type="checkbox" name="photoCategory" value="${cat.id}" ${photoCats.includes(String(cat.id)) ? 'checked' : ''}>
             <span>${cat.name}</span>
         </label>
     `).join('')
@@ -1739,7 +1741,7 @@ window.saveCategoryChange = async function() {
         }
         
         // 更新本地缓存
-        photoCategories[currentPhoto.id] = selectedCategories
+        photoCategories[String(currentPhoto.id)] = selectedCategories
         
         closeCategoryModal()
         
@@ -1747,7 +1749,7 @@ window.saveCategoryChange = async function() {
         const categoryEl = document.getElementById('modalPhotoCategory')
         if (selectedCategories.length > 0) {
             const catNames = selectedCategories.map(cid => {
-                const cat = categories.find(c => c.id === cid)
+                const cat = categories.find(c => String(c.id) === cid)
                 return cat ? cat.name : ''
             }).join(', ')
             categoryEl.textContent = catNames
