@@ -122,6 +122,12 @@ const mobile = {
         this.renderPhotos();
     },
 
+    async refreshData() {
+        this.showToast('刷新中...');
+        await this.loadData();
+        this.showToast('已刷新');
+    },
+
     async loadCategories() {
         // 模拟从 Supabase 加载分类
         // 实际项目中替换为真实的 API 调用

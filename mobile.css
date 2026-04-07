@@ -87,6 +87,11 @@ body {
     font-weight: 600;
 }
 
+.top-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .logo span:first-child {
     font-size: 24px;
 }
