@@ -77,14 +77,13 @@
             <form id="uploadForm" class="upload-form">
                 <div class="form-row">
                     <input type="file" id="photoInput" accept="image/*" multiple required>
-                    <select id="categorySelect" class="category-select">
-                        <option value="">选择分类（可选）</option>
-                    </select>
                 </div>
                 <div class="form-row">
                     <input type="text" id="photoName" placeholder="照片名称前缀（可选，用于批量命名）">
                     <input type="text" id="photoDesc" placeholder="照片描述（可选）">
                 </div>
+                <!-- 级联分类选择器 -->
+                <div id="uploadCategoryCascade" class="cascade-select"></div>
                 <button type="submit" class="btn btn-primary">上传</button>
                 <div id="uploadProgress" class="upload-progress" style="display:none;">
                     <div class="progress-bar">

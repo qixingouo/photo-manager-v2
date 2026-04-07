@@ -285,6 +285,9 @@ async function loadCategories() {
         
         categories = data || []
         
+        // 渲染上传表单的级联分类选择器
+        renderUploadCategoryCascade()
+        
         // 清理已删除的标记分类
         if (markedCategories.size > 0) {
             const validCats = [...markedCategories].filter(catId => {
@@ -921,6 +924,67 @@ window.getSelectedParentId = function() {
     return null
 }
 
+// 上传表单的级联分类选择器
+function renderUploadCategoryCascade() {
+    const container = document.getElementById('uploadCategoryCascade')
+    if (!container) return
+    container.innerHTML = ''
+    
+    const topLevel = categories.filter(c => !c.parent_id)
+    if (topLevel.length === 0) {
+        container.innerHTML = '<p style="color:#999;font-size:14px;">暂无分类，请先在分类管理中添加</p>'
+        return
+    }
+    
+    const select = document.createElement('select')
+    select.id = 'uploadCatLevel0'
+    select.className = 'category-select'
+    select.style.cssText = 'width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;'
+    select.onchange = () => window.onUploadCatLevelChange(0)
+    select.innerHTML = `<option value="">选择分类（可选）</option>${topLevel.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}`
+    container.appendChild(select)
+}
+
+window.onUploadCatLevelChange = function(level) {
+    const container = document.getElementById('uploadCategoryCascade')
+    if (!container) return
+    const select = document.getElementById(`uploadCatLevel${level}`)
+    if (!select) return
+    
+    const selectedValue = select.value
+    
+    // 删除高于当前级别的选择器
+    const selects = container.querySelectorAll('select')
+    selects.forEach((s, i) => {
+        if (i > level) s.remove()
+    })
+    
+    // 如果选中了某个分类，显示其子分类作为下一级
+    if (selectedValue) {
+        const children = categories.filter(c => c.parent_id === selectedValue)
+        if (children.length > 0) {
+            const nextLevel = level + 1
+            const nextSelect = document.createElement('select')
+            nextSelect.id = `uploadCatLevel${nextLevel}`
+            nextSelect.className = 'category-select'
+            nextSelect.style.cssText = 'width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;'
+            nextSelect.onchange = () => window.onUploadCatLevelChange(nextLevel)
+            nextSelect.innerHTML = `<option value="">选择子分类</option>${children.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}`
+            container.appendChild(nextSelect)
+        }
+    }
+}
+
+window.getSelectedUploadCategoryId = function() {
+    const container = document.getElementById('uploadCategoryCascade')
+    if (!container) return null
+    const selects = container.querySelectorAll('select')
+    for (let i = selects.length - 1; i >= 0; i--) {
+        if (selects[i].value) return selects[i].value
+    }
+    return null
+}
+
 window.createCategory = async function() {
     const input = document.getElementById('newCategory')
     const name = input.value.trim()
@@ -1054,7 +1118,7 @@ async function handleUpload(e) {
     
     const namePrefix = document.getElementById('photoName').value.trim()
     const description = document.getElementById('photoDesc').value.trim()
-    const categoryId = document.getElementById('categorySelect').value || null
+    const categoryId = window.getSelectedUploadCategoryId()
     
     const progressContainer = document.getElementById('uploadProgress')
     const progressFill = document.getElementById('progressFill')
@@ -1132,7 +1196,7 @@ async function handleUpload(e) {
     fileInput.value = ''
     document.getElementById('photoName').value = ''
     document.getElementById('photoDesc').value = ''
-    document.getElementById('categorySelect').value = ''
+    renderUploadCategoryCascade()
     
     await loadPhotos()
     await loadCategories()
