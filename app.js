@@ -830,7 +830,7 @@ function onFilterCatLevelChange(level) {
     // 如果选择了"全部分类"，重置为 all
     if (selectedValue === 'all') {
         currentCategory = 'all'
-        renderPhotos()
+        loadPhotos() // 重新加载所有照片
         return
     }
     
@@ -853,7 +853,7 @@ function onFilterCatLevelChange(level) {
             }).join('')}`
             container.appendChild(nextSelect)
         }
-        renderPhotos()
+        loadPhotos() // 重新加载照片
     }
 }
 
