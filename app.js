@@ -1,3 +1,6 @@
+const SUPABASE_URL = 'https://hpwqtlxrfezpnxpgwlsx.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w'
+
 // 等待 Supabase CDN 加载完成
 function waitForSupabase(callback, retries = 0) {
     if (typeof window.supabase !== 'undefined') {
@@ -15,9 +18,7 @@ let supabase = null;
 waitForSupabase(() => {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     initApp();
-});
-
-const SUPABASE_URL = 'https://hpwqtlxrfezpnxpgwlsx.supabase.co'
+}); = 'https://hpwqtlxrfezpnxpgwlsx.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w'
 
 let categories = []
