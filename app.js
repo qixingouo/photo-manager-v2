@@ -446,7 +446,24 @@ function updateEmptyState() {
 window.clearCategoryFilter = function() {
     currentCategory = 'all'
     showFavoritesOnly = false
-    document.getElementById('filterCategory').value = 'all'
+    // 重置级联选择器
+    const container = document.getElementById('filterCategoryCascade')
+    if (container) {
+        const topLevel = categories.filter(c => !c.parent_id)
+        container.innerHTML = ''
+        const select = document.createElement('select')
+        select.id = 'filterCatLevel0'
+        select.style.cssText = 'padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;'
+        select.onchange = () => onFilterCatLevelChange(0)
+        select.innerHTML = `<option value="all">全部分类</option>${topLevel.map(cat => {
+            const count = photos.filter(p => {
+                const photoCats = photoCategories[p.id] || []
+                return photoCats.includes(cat.id)
+            }).length
+            return `<option value="${cat.id}">${cat.name} (${count})</option>`
+        }).join('')}`
+        container.appendChild(select)
+    }
     const favBtn = document.getElementById('favoritesFilterBtn')
     favBtn.classList.remove('active')
     favBtn.textContent = '❤️ 收藏'
@@ -944,7 +961,7 @@ window.toggleCategoryChildren = function(catId, event) {
 
 window.filterByCategory = function(categoryId) {
     currentCategory = categoryId
-    document.getElementById('filterCategory').value = categoryId
+    rebuildFilterCascade(categoryId)
     loadPhotos()
 }
 
