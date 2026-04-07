@@ -13,9 +13,9 @@ const mobile = {
     currentPhotoId: null,
     previewFiles: [],
 
-    // Supabase 配置
+    // Supabase 配置（与桌面版一致）
     SUPABASE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co',
-    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHB3dGx4cmZlenBueHBnd2xzeCIsImlhdCI6MTY0MjU4ODI1NCwiZXhwIjoxOTU4MTY0MjU0fQ.D0QWNJgbq0mK1Ld7l3L7MQ6G2QqRIHh7JyJQ58NMrL0',
+    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w',
 
     // 初始化
     init() {
@@ -137,8 +137,13 @@ const mobile = {
 
     async refreshData() {
         this.showToast('刷新中...');
-        await this.loadData();
-        this.showToast('已刷新');
+        try {
+            await this.loadData();
+            this.showToast('已刷新');
+        } catch (e) {
+            console.error('刷新失败:', e);
+            this.showToast('刷新失败');
+        }
     },
 
     async loadCategories() {
