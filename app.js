@@ -1698,83 +1698,61 @@ window.openCategoryModal = function() {
     const photoCats = photoCategories[String(currentPhoto.id)] || []
     const container = document.getElementById('categoryCheckboxList')
     
-    // 渲染级联选择器
-    const topLevel = categories.filter(c => !c.parent_id)
-    
-    function getChildCategories(parentId) {
-        return categories.filter(c => c.parent_id === parentId)
+    // 构建分类树
+    function buildCategoryTree() {
+        const roots = categories.filter(c => !c.parent_id)
+        return roots.map(cat => ({
+            ...cat,
+            children: categories.filter(c => c.parent_id === cat.id)
+        }))
     }
     
-    function hasChildren(catId) {
-        return categories.some(c => c.parent_id === catId)
+    function hasChildren(cat) {
+        return categories.some(c => c.parent_id === cat.id)
     }
     
-    function renderCascadeLevel(parentId, level, selectedIds) {
-        const cats = parentId === null ? topLevel : getChildCategories(parentId)
-        if (cats.length === 0) return ''
+    function renderCategory(cat, level) {
+        const indent = level * 20
+        const isSelected = photoCats.includes(String(cat.id))
+        const children = categories.filter(c => c.parent_id === cat.id)
+        const hasChildCats = children.length > 0
         
-        const indent = level * 16
-        let html = `<div class="cascade-level" style="margin-left:${indent}px;">`
-        
-        cats.forEach(cat => {
-            const isSelected = selectedIds.includes(String(cat.id))
-            const children = getChildCategories(cat.id)
-            const hasChildCats = children.length > 0
-            
-            html += `
+        let html = `
+            <div class="cascade-item" style="margin-left:${indent}px;">
                 <label class="category-option">
                     <input type="checkbox" name="photoCategory" value="${cat.id}" ${isSelected ? 'checked' : ''} 
                            onchange="window.onCategoryCheckboxChange(this, ${cat.id})">
                     <span>${cat.name}</span>
+                    ${hasChildCats ? '<span style="color:#888;font-size:11px;">▶</span>' : ''}
                 </label>
-            `
-            
-            // 如果有子分类，添加一个"包含子类"的选项
-            if (hasChildCats) {
-                const includeChildrenId = String(cat.id) + '_include_children'
-                const isIncludeSelected = selectedIds.some(id => id.startsWith(String(cat.id) + '_')) && isSelected
-                html += `
-                    <label class="category-option category-option-sub" style="margin-left:8px;">
-                        <input type="checkbox" name="photoCategory" value="${includeChildrenId}" ${isIncludeSelected ? 'checked' : ''} 
-                               onchange="window.onCategoryCheckboxChange(this, ${cat.id}, true)">
-                        <span style="color:#888;font-size:12px;">☑️ 含子分类</span>
-                    </label>
-                `
-            }
-        })
+        `
+        
+        // 渲染子分类
+        if (hasChildCats) {
+            children.forEach(child => {
+                html += renderCategory(child, level + 1)
+            })
+        }
         
         html += '</div>'
         return html
     }
     
-    // 获取已选中的分类ID（包含 _include_children 格式的）
-    const selectedIds = photoCats
+    const tree = buildCategoryTree()
+    let html = '<div class="cascade-container">'
+    tree.forEach(root => {
+        html += renderCategory(root, 0)
+    })
+    html += '</div>'
     
-    // 渲染级联结构
-    container.innerHTML = `
-        <div class="cascade-container">
-            ${renderCascadeLevel(null, 0, selectedIds)}
-        </div>
-    `
-    
+    container.innerHTML = html
     document.getElementById('categoryModal').classList.add('active')
 }
 
 // 当复选框状态改变时
-window.onCategoryCheckboxChange = function(checkbox, catId, isIncludeChildren) {
-    if (isIncludeChildren) {
-        // 如果是"含子分类"选项被选中，自动选中父分类
-        if (checkbox.checked) {
-            const parentCheckbox = document.querySelector(`input[name="photoCategory"][value="${catId}"]`)
-            if (parentCheckbox) parentCheckbox.checked = true
-        }
-    } else {
-        // 如果是父分类被取消，同时取消所有子分类相关的选中状态
-        if (!checkbox.checked) {
-            const includeChildrenCheckbox = document.querySelector(`input[name="photoCategory"][value="${catId}_include_children"]`)
-            if (includeChildrenCheckbox) includeChildrenCheckbox.checked = false
-        }
-    }
+window.onCategoryCheckboxChange = function(checkbox, catId) {
+    // 如果选中父分类，子分类也应该被考虑（但实际存储时只存叶子节点）
+    // 这里不做自动处理，让用户自己选择
 }
 
 window.closeCategoryModal = function() {
@@ -1785,26 +1763,9 @@ window.saveCategoryChange = async function() {
     if (!currentPhoto) return
     
     try {
-        // 获取选中的分类（处理 _include_children 格式）
+        // 获取所有选中的分类（直接获取，无需特殊处理）
         const checkboxes = document.querySelectorAll('input[name="photoCategory"]:checked')
-        let selectedCategories = Array.from(checkboxes).map(cb => cb.value)
-        
-        // 处理含子分类的情况
-        const finalCategories = new Set()
-        for (const cat of selectedCategories) {
-            if (cat.endsWith('_include_children')) {
-                // 提取父分类ID
-                const parentId = cat.replace('_include_children', '')
-                finalCategories.add(parentId)
-                // 添加所有子分类
-                const children = categories.filter(c => c.parent_id === parentId)
-                children.forEach(child => finalCategories.add(String(child.id)))
-            } else {
-                finalCategories.add(cat)
-            }
-        }
-        
-        const finalCategoryIds = [...finalCategories]
+        const selectedCategories = Array.from(checkboxes).map(cb => cb.value)
         
         // 先删除旧的关联
         await supabase
@@ -1813,8 +1774,8 @@ window.saveCategoryChange = async function() {
             .eq('photo_id', currentPhoto.id)
         
         // 添加新的关联
-        if (finalCategoryIds.length > 0) {
-            const inserts = finalCategoryIds.map(cid => ({
+        if (selectedCategories.length > 0) {
+            const inserts = selectedCategories.map(cid => ({
                 photo_id: currentPhoto.id,
                 category_id: cid
             }))
@@ -1825,14 +1786,14 @@ window.saveCategoryChange = async function() {
         }
         
         // 更新本地缓存
-        photoCategories[String(currentPhoto.id)] = finalCategoryIds
+        photoCategories[String(currentPhoto.id)] = selectedCategories
         
         closeCategoryModal()
         
         // 更新弹窗中的分类显示
         const categoryEl = document.getElementById('modalPhotoCategory')
-        if (finalCategoryIds.length > 0) {
-            const catNames = finalCategoryIds.map(cid => {
+        if (selectedCategories.length > 0) {
+            const catNames = selectedCategories.map(cid => {
                 const cat = categories.find(c => String(c.id) === cid)
                 return cat ? cat.name : ''
             }).filter(n => n).join(', ')
