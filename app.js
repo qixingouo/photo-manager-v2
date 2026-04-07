@@ -343,7 +343,7 @@ async function loadPhotos() {
             if (categoryIds.length > 0) {
                 photos = photos.filter(p => {
                     const photoCats = photoCategories[p.id] || []
-                    return categoryIds.some(cid => photoCats.includes(cid))
+                    return categoryIds.some(cid => photoCats.includes(Number(cid)))
                 })
             }
         }
@@ -359,7 +359,7 @@ async function loadPhotos() {
 
 function getCategoryAndChildrenIds(categoryId) {
     const ids = [categoryId]
-    const children = categories.filter(c => c.parent_id === categoryId)
+    const children = categories.filter(c => c.parent_id === Number(categoryId))
     children.forEach(child => {
         ids.push(...getCategoryAndChildrenIds(child.id))
     })
