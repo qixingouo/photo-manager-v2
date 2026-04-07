@@ -273,18 +273,16 @@ const mobile = {
         const pagination = document.getElementById('paginationControls');
         if (!pagination) return;
         
-        if (totalPages <= 1) {
-            pagination.innerHTML = '';
-            return;
-        }
+        // 即使只有一页也显示分页信息
+        let html = `<span class="pagination-info">第 ${this.currentPage} / ${totalPages} 页</span>`;
         
-        let html = `<div class="pagination-info">第 ${this.currentPage} / ${totalPages} 页</div>`;
-        
-        if (this.currentPage > 1) {
-            html += `<button class="pagination-btn" onclick="mobile.prevPage()">上一页</button>`;
-        }
-        if (this.currentPage < totalPages) {
-            html += `<button class="pagination-btn" onclick="mobile.nextPage()">下一页</button>`;
+        if (totalPages > 1) {
+            if (this.currentPage > 1) {
+                html += `<button class="pagination-btn" onclick="mobile.prevPage()">上一页</button>`;
+            }
+            if (this.currentPage < totalPages) {
+                html += `<button class="pagination-btn" onclick="mobile.nextPage()">下一页</button>`;
+            }
         }
         
         pagination.innerHTML = html;
