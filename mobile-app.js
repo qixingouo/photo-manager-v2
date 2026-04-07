@@ -3,8 +3,6 @@
    Typeform 风格移动端应用
    ======================================== */
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
 const mobile = {
     // 状态
     currentUser: null,
@@ -17,24 +15,13 @@ const mobile = {
     pendingDeleteId: null,
     pendingDeleteType: null,
 
-    // Supabase 配置（与桌面版一致）
-    SUPABASE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co',
-    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w',
-    supabase: null,
+    // Supabase Storage 公开URL前缀（与桌面版一致）
+    STORAGE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co/storage/v1/object/public/photo/',
     
-    // 初始化 Supabase 客户端
-    initSupabase() {
-        if (!this.supabase) {
-            this.supabase = window.supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
-        }
-        return this.supabase;
-    },
-    
-    // 获取照片公开URL（与桌面版一致）
+    // 获取照片公开URL
     getPhotoUrl(storagePath) {
         if (!storagePath) return null;
-        const { data } = this.initSupabase().storage.from('photo').getPublicUrl(storagePath);
-        return data?.publicUrl || null;
+        return this.STORAGE_URL + storagePath;
     },
 
     // 初始化
