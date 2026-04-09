@@ -217,14 +217,17 @@ const mobile = {
 
     async loadAllPhotoCategories() {
         try {
+            console.log('loadAllPhotoCategories: fetching...');
             const response = await fetch(`${this.SUPABASE_URL}/rest/v1/photo_categories?select=*`, {
                 headers: {
                     'apikey': this.SUPABASE_KEY,
                     'Authorization': `Bearer ${this.SUPABASE_KEY}`
                 }
             });
+            console.log('loadAllPhotoCategories: status', response.status);
             if (response.ok) {
                 const relations = await response.json();
+                console.log('loadAllPhotoCategories: got', relations.length, 'relations');
                 this.photoCategories = {};
                 relations.forEach(rel => {
                     const pid = String(rel.photo_id);
@@ -233,6 +236,9 @@ const mobile = {
                     }
                     this.photoCategories[pid].push(String(rel.category_id));
                 });
+                console.log('loadAllPhotoCategories: built map with', Object.keys(this.photoCategories).length, 'unique photos');
+            } else {
+                console.error('loadAllPhotoCategories: failed with status', response.status);
             }
         } catch (error) {
             console.warn('加载照片分类关联失败:', error);
@@ -992,6 +998,8 @@ const mobile = {
 
     filterByCategory() {
         const categoryId = document.getElementById('mobileFilterCategory').value;
+        console.log('filterByCategory called, selected value:', categoryId);
+        console.log('this.categories ids sample:', this.categories.slice(0,3).map(c => c.id));
         this.currentCategory = categoryId;
         this.currentPage = 1;
         this.renderPhotos();
