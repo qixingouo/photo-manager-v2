@@ -275,7 +275,13 @@ const mobile = {
         empty.style.display = 'none';
         
         // 计算分页
-        const totalPages = Math.ceil(filteredPhotos.length /  this.photosPerPage);
+        const totalPages = Math.ceil(filteredPhotos.length / this.photosPerPage);
+        
+        // 边界保护：当前页不能超过总页数
+        if (this.currentPage > totalPages) {
+            this.currentPage = totalPages || 1;
+        }
+        
         const startIndex = (this.currentPage - 1) * this.photosPerPage;
         const endIndex = startIndex + this.photosPerPage;
         const pagePhotos = filteredPhotos.slice(startIndex, endIndex);
@@ -333,10 +339,14 @@ const mobile = {
     },
 
     nextPage() {
-        const filteredPhotos = this.getFilteredPhotos();
-        const totalPages = Math.ceil(filteredPhotos.length / this.photosPerPage);
-        if (this.currentPage < totalPages) {
-            this.currentPage++;
+        this.currentPage++;
+        this.renderPhotos();
+        this.scrollToTop();
+    },
+
+    prevPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
             this.renderPhotos();
             this.scrollToTop();
         }
