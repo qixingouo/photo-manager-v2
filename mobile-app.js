@@ -316,21 +316,29 @@ const mobile = {
         const loadMoreContainer = document.getElementById('loadMoreContainer');
         if (!loadMoreContainer) return;
         
-        const hasMore = this.currentPage < totalPages;
+        const hasPrev = this.currentPage > 1;
+        const hasNext = this.currentPage < totalPages;
         const displayedCount = Math.min(this.currentPage * this.photosPerPage, this.photos.length);
         
         let html = '';
-        if (this.photos.length > 0) {
-            html += `<div class="load-more-info">显示了 ${displayedCount} / ${this.photos.length} 张照片</div>`;
-        }
         
-        if (hasMore) {
-            html += `<button class="load-more-btn" onclick="mobile.nextPage()">
-                <span>加载更多</span>
-                <span class="load-more-arrow">↓</span>
-            </button>`;
-        } else if (this.photos.length > this.photosPerPage) {
-            html += `<div class="load-more-end">没有更多照片了</div>`;
+        if (this.photos.length > 0) {
+            html += `<div class="page-info">第 ${this.currentPage} / ${totalPages} 页 · ${displayedCount} / ${this.photos.length} 张</div>`;
+            html += `<div class="page-buttons">`;
+            
+            if (hasPrev) {
+                html += `<button class="page-btn prev-btn" onclick="mobile.prevPage()">
+                    <span>←</span> 上一页
+                </button>`;
+            }
+            
+            if (hasNext) {
+                html += `<button class="page-btn next-btn" onclick="mobile.nextPage()">
+                    下一页 <span>→</span>
+                </button>`;
+            }
+            
+            html += `</div>`;
         }
         
         loadMoreContainer.innerHTML = html;
