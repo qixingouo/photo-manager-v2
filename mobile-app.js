@@ -265,6 +265,16 @@ const mobile = {
         const empty = document.getElementById('emptyFeed');
         
         const filteredPhotos = this.getFilteredPhotos();
+        
+        // 调试日志
+        console.log('renderPhotos:', {
+            currentPage: this.currentPage,
+            currentCategory: this.currentCategory,
+            photosLen: this.photos.length,
+            filteredLen: filteredPhotos.length,
+            photosPerPage: this.photosPerPage
+        });
+        
         if (filteredPhotos.length === 0) {
             feed.style.display = 'none';
             empty.style.display = 'flex';
@@ -283,8 +293,10 @@ const mobile = {
         }
         
         const startIndex = (this.currentPage - 1) * this.photosPerPage;
-        const endIndex = startIndex + this.photosPerPage;
+        const endIndex = Math.min(startIndex + this.photosPerPage, filteredPhotos.length);
         const pagePhotos = filteredPhotos.slice(startIndex, endIndex);
+        
+        console.log('pagination:', { totalPages, startIndex, endIndex, pagePhotosLen: pagePhotos.length });
 
         feed.innerHTML = pagePhotos.map((photo, index) => `
             <div class="photo-card ${this.selectMode ? 'select-mode' : ''} ${this.selectedPhotos.has(photo.id) ? 'selected' : ''}" 
@@ -339,6 +351,7 @@ const mobile = {
     },
 
     nextPage() {
+        console.log('nextPage clicked, currentPage before:', this.currentPage);
         this.currentPage++;
         this.renderPhotos();
         this.scrollToTop();
