@@ -19,6 +19,12 @@ const mobile = {
     currentPage: 1,
     photosPerPage: 6,
     
+    // 当前筛选的分类
+    currentCategory: 'all',
+    
+    // 照片-分类关联 (photo_id -> [category_ids])
+    photoCategories: {},
+    
     // 多选状态
     selectMode: false,
 
@@ -174,7 +180,8 @@ const mobile = {
     async loadData() {
         await Promise.all([
             this.loadCategories(),
-            this.loadPhotos()
+            this.loadPhotos(),
+            this.loadAllPhotoCategories()
         ]);
         this.updateCategorySelects();
         this.renderPhotos();
@@ -208,6 +215,31 @@ const mobile = {
         }
     },
 
+    async loadAllPhotoCategories() {
+        try {
+            const response = await fetch(`${this.SUPABASE_URL}/rest/v1/photo_categories?select=*`, {
+                headers: {
+                    'apikey': this.SUPABASE_KEY,
+                    'Authorization': `Bearer ${this.SUPABASE_KEY}`
+                }
+            });
+            if (response.ok) {
+                const relations = await response.json();
+                this.photoCategories = {};
+                relations.forEach(rel => {
+                    const pid = String(rel.photo_id);
+                    if (!this.photoCategories[pid]) {
+                        this.photoCategories[pid] = [];
+                    }
+                    this.photoCategories[pid].push(String(rel.category_id));
+                });
+            }
+        } catch (error) {
+            console.warn('加载照片分类关联失败:', error);
+            this.photoCategories = {};
+        }
+    },
+
     async loadPhotos() {
         try {
             const response = await fetch(`${this.SUPABASE_URL}/rest/v1/photos?select=*&order=created_at.desc`, {
@@ -232,7 +264,8 @@ const mobile = {
         const feed = document.getElementById('photoFeed');
         const empty = document.getElementById('emptyFeed');
         
-        if (this.photos.length === 0) {
+        const filteredPhotos = this.getFilteredPhotos();
+        if (filteredPhotos.length === 0) {
             feed.style.display = 'none';
             empty.style.display = 'flex';
             return;
@@ -242,10 +275,10 @@ const mobile = {
         empty.style.display = 'none';
         
         // 计算分页
-        const totalPages = Math.ceil(this.photos.length / this.photosPerPage);
+        const totalPages = Math.ceil(filteredPhotos.length /  this.photosPerPage);
         const startIndex = (this.currentPage - 1) * this.photosPerPage;
         const endIndex = startIndex + this.photosPerPage;
-        const pagePhotos = this.photos.slice(startIndex, endIndex);
+        const pagePhotos = filteredPhotos.slice(startIndex, endIndex);
 
         feed.innerHTML = pagePhotos.map((photo, index) => `
             <div class="photo-card ${this.selectMode ? 'select-mode' : ''} ${this.selectedPhotos.has(photo.id) ? 'selected' : ''}" 
@@ -300,7 +333,8 @@ const mobile = {
     },
 
     nextPage() {
-        const totalPages = Math.ceil(this.photos.length / this.photosPerPage);
+        const filteredPhotos = this.getFilteredPhotos();
+        const totalPages = Math.ceil(filteredPhotos.length / this.photosPerPage);
         if (this.currentPage < totalPages) {
             this.currentPage++;
             this.renderPhotos();
@@ -935,8 +969,20 @@ const mobile = {
 
     filterByCategory() {
         const categoryId = document.getElementById('mobileFilterCategory').value;
-        // 实际项目中应该请求后端过滤
+        this.currentCategory = categoryId;
+        this.currentPage = 1;
         this.renderPhotos();
+    },
+
+    getFilteredPhotos() {
+        if (this.currentCategory === 'all') {
+            return this.photos;
+        }
+        
+        return this.photos.filter(photo => {
+            const photoCats = this.photoCategories[String(photo.id)] || [];
+            return photoCats.includes(String(this.currentCategory));
+        });
     },
 
     // ========================================
