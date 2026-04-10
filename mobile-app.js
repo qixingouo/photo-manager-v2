@@ -1027,16 +1027,25 @@ const mobile = {
         }
         
         const categoryId = this.currentCategory;
+        
+        // 统计每个分类各有几张照片
+        const catCount = {};
+        Object.entries(this.photoCategories).forEach(([photoId, cats]) => {
+            cats.forEach(cat => {
+                catCount[cat] = (catCount[cat] || 0) + 1;
+            });
+        });
+        
         console.log('[DEBUG] 筛选照片:', {
             currentCategory: categoryId,
             totalPhotos: this.photos.length,
             photoCategoriesKeysCount: photoCatsKeys.length,
-            samplePhotoCats: this.photoCategories[Object.keys(this.photoCategories)[0]]
+            categoryPhotoCount: catCount[categoryId] || 0,
+            top5Categories: Object.entries(catCount).slice(0, 5)
         });
         
         const filtered = this.photos.filter(photo => {
             const photoCats = this.photoCategories[String(photo.id)] || [];
-            // 匹配字符串或数字类型
             return photoCats.includes(categoryId) || 
                    photoCats.includes(Number(categoryId)) ||
                    photoCats.includes(String(categoryId));
