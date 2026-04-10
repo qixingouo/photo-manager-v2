@@ -272,12 +272,11 @@ const mobile = {
         
         const filteredPhotos = this.getFilteredPhotos();
         
-        // 调试日志
-
-        
         if (filteredPhotos.length === 0) {
             feed.style.display = 'none';
             empty.style.display = 'flex';
+            // 更新分页信息
+            this.updatePaginationInfo(0, 0, 0);
             return;
         }
 
@@ -296,8 +295,6 @@ const mobile = {
         const endIndex = Math.min(startIndex + this.photosPerPage, filteredPhotos.length);
         const pagePhotos = filteredPhotos.slice(startIndex, endIndex);
         
-
-
         feed.innerHTML = pagePhotos.map((photo, index) => `
             <div class="photo-card ${this.selectMode ? 'select-mode' : ''} ${this.selectedPhotos.has(photo.id) ? 'selected' : ''}" 
                  onclick="${this.selectMode ? "mobile.togglePhotoSelect('" + photo.id + "')" : "mobile.openDetail('" + photo.id + "')"}" 
@@ -316,8 +313,14 @@ const mobile = {
             </div>
         `).join('');
         
-        // 渲染加载更多按钮
-        this.renderLoadMoreButton(totalPages);
+        // 渲染分页控制
+        this.renderLoadMoreButton(totalPages, filteredPhotos.length);
+    },
+
+    updatePaginationInfo(displayed, total, pages) {
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
+        if (!loadMoreContainer) return;
+        loadMoreContainer.innerHTML = `<div class="page-info">${displayed} / ${total} 张 · ${pages} 页</div>`;
     },
 
     renderPagination(totalPages) {
@@ -357,18 +360,18 @@ const mobile = {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
-    renderLoadMoreButton(totalPages) {
+    renderLoadMoreButton(totalPages, filteredCount) {
         const loadMoreContainer = document.getElementById('loadMoreContainer');
-        if (!loadMoreContainer) return;
+        const paginationControls = document.getElementById('paginationControls');
         
         const hasPrev = this.currentPage > 1;
         const hasNext = this.currentPage < totalPages;
-        const displayedCount = Math.min(this.currentPage * this.photosPerPage, this.photos.length);
+        const displayedCount = Math.min(this.currentPage * this.photosPerPage, filteredCount);
         
         let html = '';
         
-        if (this.photos.length > 0) {
-            html += `<div class="page-info">第 ${this.currentPage} / ${totalPages} 页 · ${displayedCount} / ${this.photos.length} 张</div>`;
+        if (filteredCount > 0) {
+            html += `<div class="page-info">第 ${this.currentPage} / ${totalPages} 页 · ${displayedCount} / ${filteredCount} 张</div>`;
             html += `<div class="page-buttons">`;
             
             if (hasPrev) {
@@ -386,7 +389,14 @@ const mobile = {
             html += `</div>`;
         }
         
-        loadMoreContainer.innerHTML = html;
+        if (loadMoreContainer) {
+            loadMoreContainer.innerHTML = html;
+        }
+        
+        // 清除 paginationControls 的加载提示
+        if (paginationControls) {
+            paginationControls.innerHTML = '';
+        }
     },
 
     toggleSelectMode() {
@@ -866,7 +876,8 @@ const mobile = {
         }
         this.currentCategory = categoryId;
         this.currentPage = 1;
-        this.loadPhotos();
+        // 重新渲染照片（使用已有的 photos 数据，只做筛选）
+        this.renderPhotos();
     },
 
     showAddCategory() {
@@ -988,21 +999,27 @@ const mobile = {
     },
 
     getFilteredPhotos() {
+        // 如果是"全部分类"，返回所有照片
         if (this.currentCategory === 'all') {
             return this.photos;
         }
         
-        // 如果 photoCategories 还没加载（空对象），返回所有照片
+        // 如果 photoCategories 还没加载（空对象），且不是全部分类，返回空数组
+        // 这样可以避免在关联数据加载前显示错误结果
         const photoCatsKeys = Object.keys(this.photoCategories);
         if (photoCatsKeys.length === 0) {
-            return this.photos;
+            // photoCategories 未加载时，如果是筛选分类状态，返回空
+            // 等 loadAllPhotoCategories 加载完成后再筛选
+            return [];
         }
         
+        const categoryId = this.currentCategory;
         const filtered = this.photos.filter(photo => {
             const photoCats = this.photoCategories[String(photo.id)] || [];
-            // 尝试同时匹配字符串和数字类型的 categoryId
-            return photoCats.includes(String(this.currentCategory)) || 
-                   photoCats.includes(Number(this.currentCategory));
+            // 匹配字符串或数字类型
+            return photoCats.includes(categoryId) || 
+                   photoCats.includes(Number(categoryId)) ||
+                   photoCats.includes(String(categoryId));
         });
         
         return filtered;
