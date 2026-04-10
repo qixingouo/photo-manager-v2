@@ -1067,7 +1067,15 @@ const mobile = {
         
         // 获取当前分类及其所有子分类的 ID
         const categoryIds = this.getCategoryAndChildrenIds(categoryId);
-        console.log('[DEBUG] 分类及其子分类IDs:', categoryIds);
+        console.log('[DEBUG] 当前选中的分类ID:', categoryId);
+        console.log('[DEBUG] 该分类及其子分类IDs:', categoryIds);
+        
+        // 打印每个目标分类的名字
+        const targetCatNames = categoryIds.map(id => {
+            const cat = this.categories.find(c => c.id === id);
+            return cat ? cat.name : '未知';
+        });
+        console.log('[DEBUG] 目标分类名字:', targetCatNames);
         
         // 打印有照片的前5个分类
         const sortedCats = Object.entries(catCount).sort((a,b) => b[1]-a[1]).slice(0, 5);
