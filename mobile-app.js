@@ -1005,15 +1005,20 @@ const mobile = {
         }
         
         // 如果 photoCategories 还没加载（空对象），且不是全部分类，返回空数组
-        // 这样可以避免在关联数据加载前显示错误结果
         const photoCatsKeys = Object.keys(this.photoCategories);
         if (photoCatsKeys.length === 0) {
-            // photoCategories 未加载时，如果是筛选分类状态，返回空
-            // 等 loadAllPhotoCategories 加载完成后再筛选
+            console.warn('[DEBUG] photoCategories 为空，当前分类:', this.currentCategory, '照片数:', this.photos.length);
             return [];
         }
         
         const categoryId = this.currentCategory;
+        console.log('[DEBUG] 筛选照片:', {
+            currentCategory: categoryId,
+            totalPhotos: this.photos.length,
+            photoCategoriesKeysCount: photoCatsKeys.length,
+            samplePhotoCats: this.photoCategories[Object.keys(this.photoCategories)[0]]
+        });
+        
         const filtered = this.photos.filter(photo => {
             const photoCats = this.photoCategories[String(photo.id)] || [];
             // 匹配字符串或数字类型
@@ -1022,6 +1027,7 @@ const mobile = {
                    photoCats.includes(String(categoryId));
         });
         
+        console.log('[DEBUG] 筛选结果:', filtered.length, '张');
         return filtered;
     },
 
