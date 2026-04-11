@@ -916,10 +916,23 @@ const mobile = {
         const list = document.getElementById('categoryList');
         const rootCategories = this.categories.filter(c => !c.parent_id);
 
-        list.innerHTML = rootCategories.map(cat => this.renderCategoryItem(cat, 0)).join('');
+        // 添加 ALL 选项在最前面
+        let html = `
+            <div class="category-item" id="cat-all" onclick="mobile.switchToHomeAndFilter('all')">
+                <div class="category-header">
+                    <div class="category-name">
+                        <span>📷</span>
+                        <span class="category-name-text">全部</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        html += rootCategories.map(cat => this.renderCategoryItem(cat, 0)).join('');
+        list.innerHTML = html;
 
         if (rootCategories.length === 0) {
-            list.innerHTML = '<div class="empty-state"><span class="empty-icon">📁</span><p>暂无分类</p></div>';
+            list.innerHTML += '<div class="empty-state"><span class="empty-icon">📁</span><p>暂无分类</p></div>';
         }
     },
 
