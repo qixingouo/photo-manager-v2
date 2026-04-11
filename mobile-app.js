@@ -31,6 +31,9 @@ const mobile = {
     // 主题状态
     isDarkMode: false,
 
+    // 分类加锁状态 (categoryId -> password)
+    lockedCategories: {},
+
     // Supabase Storage 公开URL前缀（与桌面版一致）
     SUPABASE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w',
@@ -87,6 +90,14 @@ const mobile = {
         const savedTheme = localStorage.getItem('photoTheme');
         this.isDarkMode = savedTheme === 'dark';
         this.applyTheme();
+        
+        // 加载加锁的分类
+        try {
+            const saved = localStorage.getItem('lockedCategories');
+            this.lockedCategories = saved ? JSON.parse(saved) : {};
+        } catch (e) {
+            this.lockedCategories = {};
+        }
     },
 
     applyTheme() {
@@ -915,6 +926,7 @@ const mobile = {
     renderCategoryItem(cat, level) {
         const children = this.categories.filter(c => c.parent_id === cat.id);
         const isMarked = this.markedCategories.includes(cat.id);
+        const isLocked = this.lockedCategories[cat.id];
         const indent = level * 16;
         const hasChildren = children.length > 0;
         const arrow = hasChildren ? '<span class="category-arrow" onclick="event.stopPropagation(); mobile.toggleChildren(\'' + cat.id + '\')">›</span>' : '';
@@ -924,7 +936,7 @@ const mobile = {
             <div class="category-item" id="cat-${cat.id}" style="padding-left:${indent}px;">
                 <div class="category-header" onclick="mobile.toggleCategoryActions('${cat.id}')">
                     <div class="category-name">
-                        <span>${icon}</span>
+                        <span>${icon}${isLocked ? ' 🔒' : ''}</span>
                         <span class="category-name-text">${cat.name}</span>
                         ${arrow}
                     </div>
@@ -937,6 +949,9 @@ const mobile = {
                 <div class="category-actions" id="actions-${cat.id}" style="display:none;">
                     <button class="btn-secondary" onclick="mobile.markCategory('${cat.id}')">
                         ${isMarked ? '⭐ 已标记' : '☆ 标记'}
+                    </button>
+                    <button class="btn-secondary" onclick="mobile.toggleLockCategory('${cat.id}')">
+                        ${isLocked ? '🔓 解锁' : '🔒 加锁'}
                     </button>
                     <button class="btn-secondary" onclick="mobile.editCategoryName('${cat.id}')">
                         ✏️ 编辑
@@ -1156,6 +1171,162 @@ const mobile = {
         if (actions) actions.remove();
     },
 
+    toggleLockCategory(id) {
+        // 隐藏操作栏
+        document.querySelectorAll('.category-actions').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        if (this.lockedCategories[id]) {
+            // 已加锁，解锁需要验证密码
+            this.pendingLockId = id;
+            this.pendingLockAction = 'unlock';
+            this.showLockPasswordModal('unlock');
+        } else {
+            // 未加锁，设置为加锁
+            this.pendingLockId = id;
+            this.pendingLockAction = 'lock';
+            this.showLockPasswordModal('lock');
+        }
+    },
+
+    showLockPasswordModal(action) {
+        const isLock = action === 'lock';
+        const isDelete = action === 'delete';
+        let title, hint;
+        
+        if (isDelete) {
+            title = '🔒 分类已加锁';
+            hint = '请输入密码验证后才能删除';
+        } else if (isLock) {
+            title = '🔒 设置解锁密码';
+            hint = '设置密码后，删除分类需输入此密码';
+        } else {
+            title = '🔓 输入密码解锁';
+            hint = '请输入分类解锁密码';
+        }
+        
+        const modal = document.createElement('div');
+        modal.id = 'lockPasswordModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>${title}</h3>
+                <p class="modal-hint" style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">${hint}</p>
+                <div class="form-item">
+                    <input type="password" id="lockPasswordInput" placeholder="输入密码" style="width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--bg);color:var(--text);">
+                </div>
+                ${isLock ? `
+                <div class="form-item">
+                    <input type="password" id="lockPasswordConfirm" placeholder="确认密码" style="width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--bg);color:var(--text);">
+                </div>
+                ` : ''}
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="mobile.closeLockPasswordModal()">取消</button>
+                    <button class="btn-primary" onclick="mobile.confirmLockAction()">确认</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+        
+        // 自动聚焦
+        setTimeout(() => {
+            const input = document.getElementById('lockPasswordInput');
+            if (input) input.focus();
+        }, 100);
+        
+        // 回车确认
+        const input = document.getElementById('lockPasswordInput');
+        if (input) {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.confirmLockAction();
+                } else if (e.key === 'Escape') {
+                    this.closeLockPasswordModal();
+                }
+            });
+        }
+    },
+
+    closeLockPasswordModal() {
+        const modal = document.getElementById('lockPasswordModal');
+        if (modal) modal.remove();
+        this.pendingLockId = null;
+        this.pendingLockAction = null;
+    },
+
+    confirmLockAction() {
+        const password = document.getElementById('lockPasswordInput').value;
+        
+        if (!password) {
+            this.showToast('请输入密码');
+            return;
+        }
+        
+        if (this.pendingLockAction === 'lock') {
+            const confirmPassword = document.getElementById('lockPasswordConfirm').value;
+            if (password !== confirmPassword) {
+                this.showToast('两次密码不一致');
+                return;
+            }
+            if (password.length < 4) {
+                this.showToast('密码至少4位');
+                return;
+            }
+            
+            // 设置密码
+            this.lockedCategories[this.pendingLockId] = password;
+            localStorage.setItem('lockedCategories', JSON.stringify(this.lockedCategories));
+            this.showToast('分类已加锁 🔒');
+            
+        } else if (this.pendingLockAction === 'unlock') {
+            // 验证密码
+            if (this.lockedCategories[this.pendingLockId] !== password) {
+                this.showToast('密码错误');
+                return;
+            }
+            
+            // 解锁
+            delete this.lockedCategories[this.pendingLockId];
+            localStorage.setItem('lockedCategories', JSON.stringify(this.lockedCategories));
+            this.showToast('分类已解锁 🔓');
+            this.closeLockPasswordModal();
+            this.renderCategories();
+            return;
+            
+        } else if (this.pendingLockAction === 'delete') {
+            // 验证密码后才能删除
+            if (this.lockedCategories[this.pendingDeleteId] !== password) {
+                this.showToast('密码错误');
+                return;
+            }
+            
+            // 密码正确，继续删除流程
+            this.closeLockPasswordModal();
+            
+            // 获取这个分类及其子分类的照片数量
+            const categoryIds = this.getCategoryAndChildrenIds(this.pendingDeleteId);
+            const photoCount = this.photos.filter(photo => {
+                const photoCats = this.photoCategories[photo.id] || [];
+                return categoryIds.some(catId => photoCats.includes(catId));
+            }).length;
+            
+            const category = this.categories.find(c => c.id === this.pendingDeleteId);
+            document.getElementById('confirmTitle').textContent = '删除分类';
+            const photoMsg = photoCount > 0 ? `该分类下有 ${photoCount} 张照片，删除分类将同时删除这些照片。` : '';
+            document.getElementById('confirmMessage').textContent = `确定要删除分类「${category.name}」吗？${photoMsg}`;
+            document.getElementById('confirmModal').style.display = 'flex';
+            return;
+        }
+        
+        this.closeLockPasswordModal();
+        this.renderCategories();
+        
+        this.closeLockPasswordModal();
+        this.renderCategories();
+    },
+
     // 获取分类及其所有子分类的 ID（递归）
     getCategoryAndChildrenIds(categoryId) {
         const ids = [categoryId];
@@ -1169,6 +1340,14 @@ const mobile = {
     async deleteCategory(id) {
         const category = this.categories.find(c => c.id === id);
         if (!category) return;
+        
+        // 检查是否加锁
+        if (this.lockedCategories[id]) {
+            this.pendingDeleteId = id;
+            this.pendingDeleteType = 'category-locked';
+            this.showLockPasswordModal('delete');
+            return;
+        }
         
         // 获取这个分类及其子分类的照片数量
         const categoryIds = this.getCategoryAndChildrenIds(id);
@@ -1231,6 +1410,12 @@ const mobile = {
             // 更新markedCategories
             this.markedCategories = this.markedCategories.filter(id => id !== categoryId);
             localStorage.setItem('markedCategories', JSON.stringify(this.markedCategories));
+            
+            // 从加锁列表中移除
+            if (this.lockedCategories[categoryId]) {
+                delete this.lockedCategories[categoryId];
+                localStorage.setItem('lockedCategories', JSON.stringify(this.lockedCategories));
+            }
             
             this.updateCategorySelects();
             this.renderCategories();
