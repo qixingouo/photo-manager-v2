@@ -1328,13 +1328,31 @@ const mobile = {
     // ========================================
     async loadComments(photoId) {
         const list = document.getElementById('commentsList');
-        // 模拟留言
-        list.innerHTML = `
-            <div class="comment-item">
-                <div class="comment-text">这个照片真棒！</div>
-                <div class="comment-time">刚刚</div>
-            </div>
-        `;
+        try {
+            const supabase = this.initSupabase();
+            const { data, error } = await supabase
+                .from('comments')
+                .select('*')
+                .eq('photo_id', photoId)
+                .order('created_at', { ascending: true });
+            
+            if (error) throw error;
+            
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px 0;">暂无留言</p>';
+                return;
+            }
+            
+            list.innerHTML = data.map(c => `
+                <div class="comment-item">
+                    <div class="comment-text">${this.escapeHtml(c.content)}</div>
+                    <div class="comment-time">${this.formatTime(c.created_at)}</div>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error('加载留言失败:', err);
+            list.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px 0;">暂无留言</p>';
+        }
     },
 
     async addComment(e) {
@@ -1343,9 +1361,40 @@ const mobile = {
         const text = input.value.trim();
         if (!text) return;
 
-        this.showToast('留言已发送');
-        input.value = '';
-        this.loadComments(this.currentPhotoId);
+        try {
+            const supabase = this.initSupabase();
+            const { error } = await supabase
+                .from('comments')
+                .insert([{ photo_id: this.currentPhotoId, content: text }]);
+            
+            if (error) throw error;
+            
+            input.value = '';
+            this.showToast('留言已发送');
+            this.loadComments(this.currentPhotoId);
+        } catch (err) {
+            console.error('留言失败:', err);
+            this.showToast('留言失败，请重试');
+        }
+    },
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    formatTime(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = (now - date) / 1000;
+        
+        if (diff < 60) return '刚刚';
+        if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+        if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+        if (diff < 604800) return Math.floor(diff / 86400) + '天前';
+        return date.toLocaleDateString('zh-CN');
     },
 
     // ========================================
