@@ -1717,29 +1717,149 @@ const mobile = {
     // 改分类弹窗
     // ========================================
     openCategoryModal() {
-        const checklist = document.getElementById('categoryChecklist');
-        checklist.innerHTML = `
-            <label class="checkbox-item">
-                <input type="checkbox" id="noCategoryCheck">
-                <span>未分类</span>
-            </label>
-        ` + this.categories.map(cat => `
-            <label class="checkbox-item">
-                <input type="checkbox" value="${cat.id}">
-                <span>${cat.name}</span>
-            </label>
-        `).join('');
-        
+        this.renderDetailCategoryCascade();
         document.getElementById('categoryModal').style.display = 'flex';
+    },
+
+    renderDetailCategoryCascade() {
+        const container = document.getElementById('detailCategoryCascade');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        // 获取当前照片的分类
+        const currentCats = this.photoCategories[this.currentPhotoId] || [];
+        
+        // 构建层级结构
+        const buildLevel = (parentId, level) => {
+            const children = this.categories.filter(c => c.parent_id === parentId);
+            if (children.length === 0) return null;
+            
+            const select = document.createElement('select');
+            select.id = `detailCatLevel${level}`;
+            select.style.cssText = `width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--card);color:var(--text);margin-top:${level > 0 ? '8px' : '0'};`;
+            select.onchange = () => this.onDetailCatLevelChange(level);
+            
+            // 获取当前选中的分类（从子往父回溯）
+            const selectedId = currentCats.find(pc => {
+                const cat = this.categories.find(c => c.id === pc);
+                if (!cat) return false;
+                if (parentId === null) {
+                    return !cat.parent_id;
+                }
+                return cat.parent_id === parentId;
+            });
+            
+            let options = `<option value="">${level === 0 ? '选择分类' : '选择子分类'}</option>`;
+            children.forEach(cat => {
+                const isSelected = selectedId === cat.id ? 'selected' : '';
+                options += `<option value="${cat.id}" ${isSelected}>${cat.name}</option>`;
+            });
+            select.innerHTML = options;
+            container.appendChild(select);
+            
+            // 如果有选中，继续加载子分类
+            if (selectedId) {
+                const selectedCat = this.categories.find(c => c.id === selectedId);
+                if (selectedCat) {
+                    const grandChildren = this.categories.filter(c => c.parent_id === selectedId);
+                    if (grandChildren.length > 0) {
+                        buildLevel(selectedId, level + 1);
+                    }
+                }
+            }
+            
+            return select;
+        };
+        
+        buildLevel(null, 0);
+    },
+
+    onDetailCatLevelChange(level) {
+        const container = document.getElementById('detailCategoryCascade');
+        if (!container) return;
+        const select = document.getElementById(`detailCatLevel${level}`);
+        if (!select) return;
+        
+        const selectedValue = select.value;
+        
+        // 删除高于当前级别的选择器
+        const selects = container.querySelectorAll('select');
+        selects.forEach((s, i) => {
+            if (i > level) s.remove();
+        });
+        
+        // 如果选中了某个分类，显示其子分类作为下一级
+        if (selectedValue) {
+            const children = this.categories.filter(c => c.parent_id === selectedValue);
+            if (children.length > 0) {
+                const nextLevel = level + 1;
+                const nextSelect = document.createElement('select');
+                nextSelect.id = `detailCatLevel${nextLevel}`;
+                nextSelect.style.cssText = `width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--card);color:var(--text);margin-top:8px;`;
+                nextSelect.onchange = () => this.onDetailCatLevelChange(nextLevel);
+                nextSelect.innerHTML = `<option value="">选择子分类</option>${children.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}`;
+                container.appendChild(nextSelect);
+            }
+        }
+    },
+
+    getSelectedDetailCategoryId() {
+        const container = document.getElementById('detailCategoryCascade');
+        if (!container) return null;
+        const selects = container.querySelectorAll('select');
+        for (let i = selects.length - 1; i >= 0; i--) {
+            if (selects[i].value) return selects[i].value;
+        }
+        return null;
     },
 
     closeCategoryModal() {
         document.getElementById('categoryModal').style.display = 'none';
     },
 
-    saveCategoryChange() {
-        this.closeCategoryModal();
-        this.showToast('分类已更新');
+    async saveCategoryChange() {
+        const newCategoryId = this.getSelectedDetailCategoryId();
+        const photoId = this.currentPhotoId;
+        
+        if (!newCategoryId) {
+            // 未选择分类，设置为未分类
+            this.photoCategories[photoId] = [];
+        } else {
+            this.photoCategories[photoId] = [newCategoryId];
+        }
+        
+        try {
+            const supabase = this.initSupabase();
+            
+            // 删除旧关联
+            await supabase.from('photo_categories').delete().eq('photo_id', photoId);
+            
+            // 添加新关联
+            if (newCategoryId) {
+                await supabase.from('photo_categories').insert([
+                    { photo_id: photoId, category_id: newCategoryId }
+                ]);
+            }
+            
+            // 更新照片的显示
+            const photo = this.photos.find(p => p.id === photoId);
+            if (photo) {
+                const cat = this.categories.find(c => c.id === newCategoryId);
+                photo.category_id = newCategoryId || null;
+                photo.category_name = cat ? cat.name : '未分类';
+            }
+            
+            this.closeCategoryModal();
+            this.showToast('分类已更新');
+            
+            // 更新详情页的分类显示
+            document.getElementById('detailCategory').textContent = newCategoryId 
+                ? (this.categories.find(c => c.id === newCategoryId)?.name || '分类') 
+                : '未分类';
+        } catch (err) {
+            console.error('更新分类失败:', err);
+            this.showToast('更新失败，请重试');
+        }
     },
 
     // ========================================
