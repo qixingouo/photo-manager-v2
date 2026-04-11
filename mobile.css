@@ -1565,3 +1565,51 @@ input:checked + .slider:before {
 .cat-tree-children .cat-tree-item {
     background: var(--bg);
 }
+
+/* ========================================
+   Category Delete Options Modal
+   ======================================== */
+.delete-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.delete-option-btn {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.delete-option-btn:active {
+    background: var(--border);
+}
+
+.delete-option-btn .option-icon {
+    font-size: 20px;
+    margin-right: 12px;
+}
+
+.delete-option-btn .option-text {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.delete-option-btn .option-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+}
+
+.delete-option-btn:hover {
+    border-color: var(--primary);
+}

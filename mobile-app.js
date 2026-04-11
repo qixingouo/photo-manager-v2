@@ -1370,11 +1370,179 @@ const mobile = {
         }).length;
         
         this.pendingDeleteId = id;
-        this.pendingDeleteType = 'category';
-        document.getElementById('confirmTitle').textContent = '删除分类';
-        const photoMsg = photoCount > 0 ? `该分类下有 ${photoCount} 张照片，删除分类将同时删除这些照片。` : '';
-        document.getElementById('confirmMessage').textContent = `确定要删除分类「${category.name}」吗？${photoMsg}`;
-        document.getElementById('confirmModal').style.display = 'flex';
+        this.pendingCategoryName = category.name;
+        this.pendingPhotoCount = photoCount;
+        
+        // 显示删除选项弹窗
+        this.showCategoryDeleteOptions(photoCount);
+    },
+
+    showCategoryDeleteOptions(photoCount) {
+        const photoMsg = photoCount > 0 ? `该分类下有 ${photoCount} 张照片` : '该分类下暂无照片';
+        
+        const modal = document.createElement('div');
+        modal.id = 'categoryDeleteModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-card">
+                <h3>🗑️ 删除「${this.pendingCategoryName}」</h3>
+                <p class="modal-hint" style="color:var(--text-muted);font-size:13px;margin:8px 0 16px;">${photoMsg}</p>
+                <div class="delete-options">
+                    <button class="delete-option-btn" onclick="mobile.confirmDeleteCategoryOnly()">
+                        <span class="option-icon">📁</span>
+                        <span class="option-text">只删除分类</span>
+                        <span class="option-desc">保留照片，移至未分类</span>
+                    </button>
+                    ${photoCount > 0 ? `
+                    <button class="delete-option-btn" onclick="mobile.confirmDeleteCategoryAndPhotos()">
+                        <span class="option-icon">💥</span>
+                        <span class="option-text">删除分类和照片</span>
+                        <span class="option-desc">分类及关联照片全部删除</span>
+                    </button>
+                    <button class="delete-option-btn" onclick="mobile.confirmDeletePhotosOnly()">
+                        <span class="option-icon">🗃️</span>
+                        <span class="option-text">只删除照片</span>
+                        <span class="option-desc">保留分类，仅删除照片</span>
+                    </button>
+                    ` : ''}
+                </div>
+                <div class="modal-actions" style="margin-top:16px;">
+                    <button class="btn-secondary" onclick="mobile.closeCategoryDeleteModal()">取消</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+    },
+
+    closeCategoryDeleteModal() {
+        const modal = document.getElementById('categoryDeleteModal');
+        if (modal) modal.remove();
+        this.pendingDeleteId = null;
+        this.pendingCategoryName = null;
+        this.pendingPhotoCount = 0;
+    },
+
+    // 只删除分类，保留照片
+    async confirmDeleteCategoryOnly() {
+        const categoryId = this.pendingDeleteId;
+        const supabase = this.initSupabase();
+        
+        this.closeCategoryDeleteModal();
+        
+        try {
+            // 删除分类与照片的关联（照片保留）
+            await supabase.from('photo_categories').delete().eq('category_id', categoryId);
+            
+            // 删除分类
+            await supabase.from('categories').delete().eq('id', categoryId);
+            
+            // 更新本地状态
+            this.categories = this.categories.filter(c => c.id !== categoryId);
+            
+            // 更新markedCategories
+            this.markedCategories = this.markedCategories.filter(id => id !== categoryId);
+            localStorage.setItem('markedCategories', JSON.stringify(this.markedCategories));
+            
+            // 更新lockedCategories
+            if (this.lockedCategories[categoryId]) {
+                delete this.lockedCategories[categoryId];
+                localStorage.setItem('lockedCategories', JSON.stringify(this.lockedCategories));
+            }
+            
+            this.updateCategorySelects();
+            this.renderCategories();
+            this.showToast('分类已删除，照片保留');
+        } catch (err) {
+            console.error('删除分类失败:', err);
+            this.showToast('删除失败，请重试');
+        }
+    },
+
+    // 删除分类和照片
+    async confirmDeleteCategoryAndPhotos() {
+        const categoryId = this.pendingDeleteId;
+        const categoryIds = this.getCategoryAndChildrenIds(categoryId);
+        const supabase = this.initSupabase();
+        
+        this.closeCategoryDeleteModal();
+        
+        // 找出属于这些分类的所有照片
+        const photosToDelete = this.photos.filter(photo => {
+            const photoCats = this.photoCategories[photo.id] || [];
+            return categoryIds.some(catId => photoCats.includes(catId));
+        });
+        
+        let deletedPhotoCount = 0;
+        
+        // 删除照片
+        for (const photo of photosToDelete) {
+            try {
+                await supabase.from('photos').delete().eq('id', photo.id);
+                deletedPhotoCount++;
+            } catch (err) {
+                console.error('删除照片失败:', photo.id, err);
+            }
+        }
+        
+        // 删除分类
+        try {
+            await supabase.from('categories').delete().eq('id', categoryId);
+        } catch (err) {
+            console.error('删除分类失败:', err);
+        }
+        
+        // 更新本地状态
+        this.photos = this.photos.filter(p => !photosToDelete.includes(p));
+        this.categories = this.categories.filter(c => c.id !== categoryId);
+        
+        // 更新markedCategories
+        this.markedCategories = this.markedCategories.filter(id => id !== categoryId);
+        localStorage.setItem('markedCategories', JSON.stringify(this.markedCategories));
+        
+        // 更新lockedCategories
+        if (this.lockedCategories[categoryId]) {
+            delete this.lockedCategories[categoryId];
+            localStorage.setItem('lockedCategories', JSON.stringify(this.lockedCategories));
+        }
+        
+        this.updateCategorySelects();
+        this.renderCategories();
+        this.renderPhotos();
+        this.showToast(`已删除分类及 ${deletedPhotoCount} 张照片`);
+    },
+
+    // 只删除照片，保留分类
+    async confirmDeletePhotosOnly() {
+        const categoryId = this.pendingDeleteId;
+        const categoryIds = this.getCategoryAndChildrenIds(categoryId);
+        const supabase = this.initSupabase();
+        
+        this.closeCategoryDeleteModal();
+        
+        // 找出属于这些分类的所有照片
+        const photosToDelete = this.photos.filter(photo => {
+            const photoCats = this.photoCategories[photo.id] || [];
+            return categoryIds.some(catId => photoCats.includes(catId));
+        });
+        
+        let deletedPhotoCount = 0;
+        
+        // 删除照片
+        for (const photo of photosToDelete) {
+            try {
+                await supabase.from('photos').delete().eq('id', photo.id);
+                deletedPhotoCount++;
+            } catch (err) {
+                console.error('删除照片失败:', photo.id, err);
+            }
+        }
+        
+        // 更新本地状态
+        this.photos = this.photos.filter(p => !photosToDelete.includes(p));
+        
+        this.renderPhotos();
+        this.showToast(`已删除 ${deletedPhotoCount} 张照片，分类保留`);
     },
 
     closeConfirmModal() {
