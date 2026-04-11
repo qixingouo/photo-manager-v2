@@ -1717,11 +1717,12 @@ const mobile = {
     // 改分类弹窗
     // ========================================
     openCategoryModal() {
-        this.renderDetailCategoryCascade();
+        this.renderDetailCategoryTree();
         document.getElementById('categoryModal').style.display = 'flex';
     },
 
-    renderDetailCategoryCascade() {
+    // 渲染分类树（checkbox选择 + 箭头展开）
+    renderDetailCategoryTree() {
         const container = document.getElementById('detailCategoryCascade');
         if (!container) return;
         container.innerHTML = '';
@@ -1729,88 +1730,77 @@ const mobile = {
         // 获取当前照片的分类
         const currentCats = this.photoCategories[this.currentPhotoId] || [];
         
-        // 构建层级结构
-        const buildLevel = (parentId, level) => {
-            const children = this.categories.filter(c => c.parent_id === parentId);
-            if (children.length === 0) return null;
+        // 获取顶级分类
+        const rootCats = this.categories.filter(c => !c.parent_id);
+        
+        if (rootCats.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px 0;">暂无分类</p>';
+            return;
+        }
+        
+        // 递归渲染
+        const renderCat = (cat, level) => {
+            const children = this.categories.filter(c => c.parent_id === cat.id);
+            const hasChildren = children.length > 0;
+            const isSelected = currentCats.includes(cat.id);
+            const indent = level * 16;
             
-            const select = document.createElement('select');
-            select.id = `detailCatLevel${level}`;
-            select.style.cssText = `width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--card);color:var(--text);margin-top:${level > 0 ? '8px' : '0'};`;
-            select.onchange = () => this.onDetailCatLevelChange(level);
+            const item = document.createElement('div');
+            item.className = 'cat-tree-item';
+            item.style.cssText = `padding-left:${indent}px;`;
+            item.id = `cat-tree-${cat.id}`;
             
-            // 获取当前选中的分类（从子往父回溯）
-            const selectedId = currentCats.find(pc => {
-                const cat = this.categories.find(c => c.id === pc);
-                if (!cat) return false;
-                if (parentId === null) {
-                    return !cat.parent_id;
-                }
-                return cat.parent_id === parentId;
-            });
+            const arrowHtml = hasChildren 
+                ? `<span class="cat-tree-arrow" onclick="event.stopPropagation();mobile.toggleCatTreeExpand('${cat.id}')">›</span>` 
+                : '<span style="width:16px;display:inline-block;"></span>';
             
-            let options = `<option value="">${level === 0 ? '选择分类' : '选择子分类'}</option>`;
-            children.forEach(cat => {
-                const isSelected = selectedId === cat.id ? 'selected' : '';
-                options += `<option value="${cat.id}" ${isSelected}>${cat.name}</option>`;
-            });
-            select.innerHTML = options;
-            container.appendChild(select);
+            item.innerHTML = `
+                <label class="cat-tree-label" onclick="mobile.toggleCatTreeSelect('${cat.id}')">
+                    <input type="checkbox" class="cat-tree-checkbox" id="cat-check-${cat.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();mobile.toggleCatTreeSelect('${cat.id}')">
+                    <span class="cat-tree-name">${cat.name}</span>
+                </label>
+                ${arrowHtml}
+            `;
             
-            // 如果有选中，继续加载子分类
-            if (selectedId) {
-                const selectedCat = this.categories.find(c => c.id === selectedId);
-                if (selectedCat) {
-                    const grandChildren = this.categories.filter(c => c.parent_id === selectedId);
-                    if (grandChildren.length > 0) {
-                        buildLevel(selectedId, level + 1);
-                    }
-                }
+            container.appendChild(item);
+            
+            // 如果有子分类，渲染子分类容器
+            if (hasChildren) {
+                const childContainer = document.createElement('div');
+                childContainer.id = `cat-tree-children-${cat.id}`;
+                childContainer.className = 'cat-tree-children';
+                childContainer.style.display = 'none';
+                children.forEach(child => renderCat(child, level + 1));
+                container.appendChild(childContainer);
             }
-            
-            return select;
         };
         
-        buildLevel(null, 0);
+        rootCats.forEach(cat => renderCat(cat, 0));
     },
 
-    onDetailCatLevelChange(level) {
-        const container = document.getElementById('detailCategoryCascade');
-        if (!container) return;
-        const select = document.getElementById(`detailCatLevel${level}`);
-        if (!select) return;
+    // 展开/折叠子分类
+    toggleCatTreeExpand(catId) {
+        const childContainer = document.getElementById(`cat-tree-children-${catId}`);
+        if (!childContainer) return;
         
-        const selectedValue = select.value;
+        const arrow = document.querySelector(`#cat-tree-${catId} .cat-tree-arrow`);
+        const isHidden = childContainer.style.display === 'none';
         
-        // 删除高于当前级别的选择器
-        const selects = container.querySelectorAll('select');
-        selects.forEach((s, i) => {
-            if (i > level) s.remove();
-        });
-        
-        // 如果选中了某个分类，显示其子分类作为下一级
-        if (selectedValue) {
-            const children = this.categories.filter(c => c.parent_id === selectedValue);
-            if (children.length > 0) {
-                const nextLevel = level + 1;
-                const nextSelect = document.createElement('select');
-                nextSelect.id = `detailCatLevel${nextLevel}`;
-                nextSelect.style.cssText = `width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:var(--card);color:var(--text);margin-top:8px;`;
-                nextSelect.onchange = () => this.onDetailCatLevelChange(nextLevel);
-                nextSelect.innerHTML = `<option value="">选择子分类</option>${children.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}`;
-                container.appendChild(nextSelect);
-            }
+        if (isHidden) {
+            childContainer.style.display = 'block';
+            if (arrow) arrow.style.transform = 'rotate(90deg)';
+        } else {
+            childContainer.style.display = 'none';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
         }
     },
 
-    getSelectedDetailCategoryId() {
-        const container = document.getElementById('detailCategoryCascade');
-        if (!container) return null;
-        const selects = container.querySelectorAll('select');
-        for (let i = selects.length - 1; i >= 0; i--) {
-            if (selects[i].value) return selects[i].value;
-        }
-        return null;
+    // 选中/取消选中分类
+    toggleCatTreeSelect(catId) {
+        const checkbox = document.getElementById(`cat-check-${catId}`);
+        if (!checkbox) return;
+        
+        checkbox.checked = !checkbox.checked;
     },
 
     closeCategoryModal() {
@@ -1818,15 +1808,14 @@ const mobile = {
     },
 
     async saveCategoryChange() {
-        const newCategoryId = this.getSelectedDetailCategoryId();
-        const photoId = this.currentPhotoId;
+        const container = document.getElementById('detailCategoryCascade');
+        if (!container) return;
         
-        if (!newCategoryId) {
-            // 未选择分类，设置为未分类
-            this.photoCategories[photoId] = [];
-        } else {
-            this.photoCategories[photoId] = [newCategoryId];
-        }
+        // 获取所有选中的分类
+        const checkboxes = container.querySelectorAll('.cat-tree-checkbox:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.id.replace('cat-check-', ''));
+        
+        const photoId = this.currentPhotoId;
         
         try {
             const supabase = this.initSupabase();
@@ -1835,26 +1824,36 @@ const mobile = {
             await supabase.from('photo_categories').delete().eq('photo_id', photoId);
             
             // 添加新关联
-            if (newCategoryId) {
-                await supabase.from('photo_categories').insert([
-                    { photo_id: photoId, category_id: newCategoryId }
-                ]);
+            if (selectedIds.length > 0) {
+                const inserts = selectedIds.map(catId => ({
+                    photo_id: photoId,
+                    category_id: catId
+                }));
+                await supabase.from('photo_categories').insert(inserts);
             }
+            
+            // 更新本地状态
+            this.photoCategories[photoId] = selectedIds;
             
             // 更新照片的显示
             const photo = this.photos.find(p => p.id === photoId);
             if (photo) {
-                const cat = this.categories.find(c => c.id === newCategoryId);
-                photo.category_id = newCategoryId || null;
-                photo.category_name = cat ? cat.name : '未分类';
+                if (selectedIds.length > 0) {
+                    const cat = this.categories.find(c => c.id === selectedIds[0]);
+                    photo.category_id = selectedIds[0];
+                    photo.category_name = cat ? cat.name : '分类';
+                } else {
+                    photo.category_id = null;
+                    photo.category_name = '未分类';
+                }
             }
             
             this.closeCategoryModal();
             this.showToast('分类已更新');
             
             // 更新详情页的分类显示
-            document.getElementById('detailCategory').textContent = newCategoryId 
-                ? (this.categories.find(c => c.id === newCategoryId)?.name || '分类') 
+            document.getElementById('detailCategory').textContent = selectedIds.length > 0
+                ? (this.categories.find(c => c.id === selectedIds[0])?.name || '分类')
                 : '未分类';
         } catch (err) {
             console.error('更新分类失败:', err);
