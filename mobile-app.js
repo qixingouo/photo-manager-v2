@@ -1739,7 +1739,7 @@ const mobile = {
         }
         
         // 递归渲染
-        const renderCat = (cat, level) => {
+        const renderCat = (cat, level, parentContainer) => {
             const children = this.categories.filter(c => c.parent_id === cat.id);
             const hasChildren = children.length > 0;
             const isSelected = currentCats.includes(cat.id);
@@ -1762,7 +1762,7 @@ const mobile = {
                 ${arrowHtml}
             `;
             
-            container.appendChild(item);
+            parentContainer.appendChild(item);
             
             // 如果有子分类，渲染子分类容器
             if (hasChildren) {
@@ -1770,12 +1770,12 @@ const mobile = {
                 childContainer.id = `cat-tree-children-${cat.id}`;
                 childContainer.className = 'cat-tree-children';
                 childContainer.style.display = 'none';
-                children.forEach(child => renderCat(child, level + 1));
+                children.forEach(child => renderCat(child, level + 1, childContainer));
                 container.appendChild(childContainer);
             }
         };
         
-        rootCats.forEach(cat => renderCat(cat, 0));
+        rootCats.forEach(cat => renderCat(cat, 0, container));
     },
 
     // 展开/折叠子分类
