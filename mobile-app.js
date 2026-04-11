@@ -823,6 +823,9 @@ const mobile = {
                     <button class="btn-secondary" onclick="mobile.markCategory('${cat.id}')">
                         ${isMarked ? '⭐ 已标记' : '☆ 标记'}
                     </button>
+                    <button class="btn-secondary" onclick="mobile.editCategoryName('${cat.id}')">
+                        ✏️ 编辑
+                    </button>
                     <button class="btn-secondary" onclick="mobile.deleteCategory('${cat.id}')">
                         🗑️ 删除
                     </button>
@@ -931,6 +934,111 @@ const mobile = {
         }
         localStorage.setItem('markedCategories', JSON.stringify(this.markedCategories));
         this.renderCategories();
+    },
+
+    editCategoryName(id) {
+        // 隐藏操作栏
+        document.querySelectorAll('.category-actions').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        const category = this.categories.find(c => c.id === id);
+        if (!category) return;
+        
+        const nameEl = document.querySelector(`#cat-${id} .category-name-text`);
+        if (!nameEl) return;
+        
+        // 保存原始名称
+        const originalName = category.name;
+        
+        // 替换为输入框
+        nameEl.innerHTML = `<input type="text" id="edit-cat-name-${id}" value="${originalName}" class="category-name-input" />`;
+        
+        // 添加保存/取消按钮
+        const headerEl = document.querySelector(`#cat-${id} .category-header`);
+        headerEl.innerHTML += `
+            <div class="category-edit-actions">
+                <button class="btn-save" onclick="mobile.saveCategoryName('${id}')">✓ 保存</button>
+                <button class="btn-cancel" onclick="mobile.cancelEditCategory('${id}', '${originalName.replace(/'/g, "\\'")}')">✕ 取消</button>
+            </div>
+        `;
+        
+        // 聚焦输入框
+        const input = document.getElementById(`edit-cat-name-${id}`);
+        if (input) {
+            input.focus();
+            input.select();
+            // 监听回车键
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.saveCategoryName(id);
+                } else if (e.key === 'Escape') {
+                    this.cancelEditCategory(id, originalName);
+                }
+            });
+        }
+    },
+
+    async saveCategoryName(id) {
+        const input = document.getElementById(`edit-cat-name-${id}`);
+        if (!input) return;
+        
+        const newName = input.value.trim();
+        if (!newName) {
+            this.showToast('分类名称不能为空');
+            return;
+        }
+        
+        const category = this.categories.find(c => c.id === id);
+        if (!category) return;
+        
+        // 更新到 Supabase
+        try {
+            const supabase = this.initSupabase();
+            const { error } = await supabase
+                .from('categories')
+                .update({ name: newName })
+                .eq('id', id);
+            
+            if (error) throw error;
+            
+            // 更新本地状态
+            category.name = newName;
+            
+            // 更新照片关联中的分类名称显示
+            this.photos.forEach(photo => {
+                if (photo.category_id === id) {
+                    photo.category_name = newName;
+                }
+            });
+            
+            this.showToast('分类已重命名');
+            this.renderCategories();
+            
+            // 如果当前正在筛选这个分类，更新篩選显示
+            if (this.currentCategory === id) {
+                const filterSelect = document.getElementById('mobileFilterCategory');
+                if (filterSelect) {
+                    const option = filterSelect.querySelector(`option[value="${id}"]`);
+                    if (option) option.textContent = newName;
+                }
+            }
+        } catch (error) {
+            console.error('重命名分类失败:', error);
+            this.showToast('重命名失败，请重试');
+        }
+    },
+
+    cancelEditCategory(id, originalName) {
+        // 恢复原始显示
+        const nameEl = document.querySelector(`#cat-${id} .category-name-text`);
+        if (nameEl) {
+            nameEl.textContent = originalName;
+        }
+        
+        // 移除保存/取消按钮
+        const actions = document.querySelector(`#cat-${id} .category-edit-actions`);
+        if (actions) actions.remove();
     },
 
     // 获取分类及其所有子分类的 ID（递归）

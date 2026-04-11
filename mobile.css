@@ -643,6 +643,43 @@ body {
     font-size: 12px;
 }
 
+.category-name-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    min-width: 0;
+}
+
+.category-edit-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 12px;
+}
+
+.category-edit-actions .btn-save,
+.category-edit-actions .btn-cancel {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+}
+
+.category-edit-actions .btn-save {
+    background: var(--primary);
+    color: white;
+}
+
+.category-edit-actions .btn-cancel {
+    background: var(--bg);
+    color: var(--text-light);
+    border: 1px solid var(--border);
+}
+
 /* ========================================
    个人页面
    ======================================== */
