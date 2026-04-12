@@ -807,22 +807,22 @@ const mobile = {
         if (!container) return;
         container.innerHTML = '';
 
-        const topLevel = this.categories.filter(c => !c.parent_id);
-        if (topLevel.length === 0) {
-            container.innerHTML = '<p style="color:#999;font-size:13px;">暂无分类</p>';
-            return;
-        }
-
-        // 检查是否有上次使用的分类
+        // 先更新上次分类按钮（只要localStorage有记录就显示，不依赖categories是否加载）
         const lastCatId = localStorage.getItem('lastUploadCategoryId');
         const lastCat = lastCatId ? this.categories.find(c => String(c.id) === lastCatId) : null;
         if (lastBtn) {
-            if (lastCat) {
-                lastBtn.textContent = `📂 上次: ${lastCat.name}`;
+            if (lastCatId) {
+                lastBtn.textContent = lastCat ? `📂 上次: ${lastCat.name}` : '📂 上次分类';
                 lastBtn.style.display = 'block';
             } else {
                 lastBtn.style.display = 'none';
             }
+        }
+
+        const topLevel = this.categories.filter(c => !c.parent_id);
+        if (topLevel.length === 0) {
+            container.innerHTML = '<p style="color:#999;font-size:13px;">暂无分类</p>';
+            return;
         }
 
         const select = document.createElement('select');
