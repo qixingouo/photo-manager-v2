@@ -244,6 +244,7 @@ const mobile = {
             this.renderPhotos();
         } else if (tab === 'upload') {
             this.showPage('upload');
+            this.renderUploadCategoryCascade();
         } else if (tab === 'category') {
             this.showPage('category');
             this.renderCategories();
