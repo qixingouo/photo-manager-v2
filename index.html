@@ -110,7 +110,6 @@
         <!-- 照片浏览 -->
         <section class="photos-section">
             <div class="photos-header">
-                <h2 id="photosTitle">照片浏览</h2>
                 <div class="photos-controls">
                     <input type="text" id="searchInput" placeholder="🔍 搜索照片...">
                     <div id="filterCategoryCascade" class="filter-cascade"></div>
@@ -120,6 +119,7 @@
                     <button id="batchDeleteBtn" onclick="window.batchDeletePhotos()" class="btn btn-danger" style="display:none;">🗑️ 删除 (<span id="selectedCount">0</span>)</button>
                     <button id="favoritesFilterBtn" onclick="window.toggleFavoritesFilter()" class="btn btn-secondary">❤️ 收藏</button>
                 </div>
+                <h2 id="photosTitle">照片浏览</h2>
             </div>
             <div id="photoGrid" class="photo-grid"></div>
             <div id="emptyState" class="empty-state" style="display:none;">
