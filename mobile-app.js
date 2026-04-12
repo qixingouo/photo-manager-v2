@@ -938,17 +938,18 @@ const mobile = {
     },
 
     renderCategoryItem(cat, level) {
-        const children = this.categories.filter(c => c.parent_id === cat.id);
-        const isMarked = this.markedCategories.includes(cat.id);
-        const isLocked = this.lockedCategories[cat.id];
+        const strCatId = String(cat.id);
+        const children = this.categories.filter(c => String(c.parent_id) === strCatId);
+        const isMarked = this.markedCategories.map(m => String(m)).includes(strCatId);
+        const isLocked = !!this.lockedCategories[strCatId];
         const indent = level * 16;
         const hasChildren = children.length > 0;
-        const arrow = hasChildren ? '<span class="category-arrow" onclick="event.stopPropagation(); mobile.toggleChildren(\'' + cat.id + '\')">›</span>' : '';
+        const arrow = hasChildren ? '<span class="category-arrow" onclick="event.stopPropagation(); mobile.toggleChildren(\'' + strCatId + '\')">›</span>' : '';
         const icon = level === 0 ? (isMarked ? '⭐' : '📁') : '📄';
 
         return `
-            <div class="category-item" id="cat-${cat.id}" style="padding-left:${indent}px;">
-                <div class="category-header" onclick="mobile.toggleCategoryActions('${cat.id}')">
+            <div class="category-item" id="cat-${strCatId}" style="padding-left:${indent}px;">
+                <div class="category-header" onclick="mobile.toggleCategoryActions('${strCatId}')">
                     <div class="category-name">
                         <span>${icon}${isLocked ? ' 🔒' : ''}</span>
                         <span class="category-name-text">${cat.name}</span>
@@ -956,21 +957,21 @@ const mobile = {
                     </div>
                 </div>
                 ${hasChildren ? `
-                    <div class="category-children" id="children-${cat.id}">
+                    <div class="category-children" id="children-${strCatId}">
                         ${children.map(child => this.renderCategoryItem(child, level + 1)).join('')}
                     </div>
                 ` : ''}
-                <div class="category-actions" id="actions-${cat.id}" style="display:none;">
-                    <button class="btn-secondary" onclick="mobile.markCategory('${cat.id}')">
+                <div class="category-actions" id="actions-${strCatId}" style="display:none;">
+                    <button class="btn-secondary" onclick="mobile.markCategory('${strCatId}')">
                         ${isMarked ? '⭐ 已标记' : '☆ 标记'}
                     </button>
-                    <button class="btn-secondary" onclick="mobile.toggleLockCategory('${cat.id}')">
+                    <button class="btn-secondary" onclick="mobile.toggleLockCategory('${strCatId}')">
                         ${isLocked ? '🔓 解锁' : '🔒 加锁'}
                     </button>
-                    <button class="btn-secondary" onclick="mobile.editCategoryName('${cat.id}')">
+                    <button class="btn-secondary" onclick="mobile.editCategoryName('${strCatId}')">
                         ✏️ 编辑
                     </button>
-                    <button class="btn-secondary" onclick="mobile.deleteCategory('${cat.id}')">
+                    <button class="btn-secondary" onclick="mobile.deleteCategory('${strCatId}')">
                         🗑️ 删除
                     </button>
                 </div>
@@ -1058,25 +1059,33 @@ const mobile = {
             return;
         }
 
-        const newCat = {
-            id: Date.now(),
-            name,
-            parent_id: parentId ? parseInt(parentId) : null
-        };
+        try {
+            const supabase = this.initSupabase();
+            const { data, error } = await supabase
+                .from('categories')
+                .insert([{ name, parent_id: parentId ? parseInt(parentId) : null }])
+                .select()
+                .single();
 
-        this.categories.push(newCat);
-        this.updateCategorySelects();
-        this.renderCategories();
-        this.closeAddCategory();
-        this.showToast('分类已添加');
+            if (error) throw error;
+
+            this.categories.push(data);
+            this.updateCategorySelects();
+            this.renderCategories();
+            this.closeAddCategory();
+            this.showToast('分类已添加');
+        } catch (err) {
+            this.showToast('添加失败: ' + err.message);
+        }
     },
 
     markCategory(id) {
-        if (this.markedCategories.includes(id)) {
-            this.markedCategories = this.markedCategories.filter(c => c !== id);
+        const strId = String(id);
+        if (this.markedCategories.map(m => String(m)).includes(strId)) {
+            this.markedCategories = this.markedCategories.filter(c => String(c) !== strId);
             this.showToast('已取消标记');
         } else {
-            this.markedCategories.push(id);
+            this.markedCategories.push(strId);
             this.showToast('已标记分类 ⭐');
         }
         localStorage.setItem('markedCategories', JSON.stringify(this.markedCategories));
@@ -1088,11 +1097,12 @@ const mobile = {
         document.querySelectorAll('.category-actions').forEach(el => {
             el.style.display = 'none';
         });
-        
-        const category = this.categories.find(c => c.id === id);
+
+        const strId = String(id);
+        const category = this.categories.find(c => String(c.id) === strId);
         if (!category) return;
-        
-        const nameEl = document.querySelector(`#cat-${id} .category-name-text`);
+
+        const nameEl = document.querySelector(`#cat-${strId} .category-name-text`);
         if (!nameEl) return;
         
         // 保存原始名称
@@ -1136,16 +1146,21 @@ const mobile = {
             return;
         }
         
-        const category = this.categories.find(c => c.id === id);
-        if (!category) return;
-        
+        // id 可能是 string 或 number，统一转为字符串比较
+        const strId = String(id);
+        const category = this.categories.find(c => String(c.id) === strId);
+        if (!category) {
+            this.showToast('未找到分类');
+            return;
+        }
+
         // 更新到 Supabase
         try {
             const supabase = this.initSupabase();
             const { error } = await supabase
                 .from('categories')
                 .update({ name: newName })
-                .eq('id', id);
+                .eq('id', strId);
             
             if (error) throw error;
             
@@ -1154,7 +1169,7 @@ const mobile = {
             
             // 更新照片关联中的分类名称显示
             this.photos.forEach(photo => {
-                if (photo.category_id === id) {
+                if (String(photo.category_id) === strId) {
                     photo.category_name = newName;
                 }
             });
@@ -1163,10 +1178,10 @@ const mobile = {
             this.renderCategories();
             
             // 如果当前正在筛选这个分类，更新篩選显示
-            if (this.currentCategory === id) {
+            if (String(this.currentCategory) === strId) {
                 const filterSelect = document.getElementById('mobileFilterCategory');
                 if (filterSelect) {
-                    const option = filterSelect.querySelector(`option[value="${id}"]`);
+                    const option = filterSelect.querySelector(`option[value="${strId}"]`);
                     if (option) option.textContent = newName;
                 }
             }
@@ -1193,15 +1208,16 @@ const mobile = {
         document.querySelectorAll('.category-actions').forEach(el => {
             el.style.display = 'none';
         });
-        
-        if (this.lockedCategories[id]) {
+
+        const strId = String(id);
+        if (this.lockedCategories[strId]) {
             // 已加锁，解锁需要验证密码
-            this.pendingLockId = id;
+            this.pendingLockId = strId;
             this.pendingLockAction = 'unlock';
             this.showLockPasswordModal('unlock');
         } else {
             // 未加锁，设置为加锁
-            this.pendingLockId = id;
+            this.pendingLockId = strId;
             this.pendingLockAction = 'lock';
             this.showLockPasswordModal('lock');
         }
@@ -1346,8 +1362,9 @@ const mobile = {
 
     // 获取分类及其所有子分类的 ID（递归）
     getCategoryAndChildrenIds(categoryId) {
-        const ids = [categoryId];
-        const children = this.categories.filter(c => c.parent_id === categoryId);
+        const strId = String(categoryId);
+        const ids = [strId];
+        const children = this.categories.filter(c => String(c.parent_id) === strId);
         for (const child of children) {
             ids.push(...this.getCategoryAndChildrenIds(child.id));
         }
@@ -1397,19 +1414,20 @@ const mobile = {
     },
 
     async deleteCategory(id) {
-        const category = this.categories.find(c => c.id === id);
+        const strId = String(id);
+        const category = this.categories.find(c => String(c.id) === strId);
         if (!category) return;
-        
+
         // 检查是否加锁
-        if (this.lockedCategories[id]) {
-            this.pendingDeleteId = id;
+        if (this.lockedCategories[strId]) {
+            this.pendingDeleteId = strId;
             this.pendingDeleteType = 'category-locked';
             this.showLockPasswordModal('delete');
             return;
         }
-        
+
         // 获取这个分类及其子分类的照片数量
-        const categoryIds = this.getCategoryAndChildrenIds(id);
+        const categoryIds = this.getCategoryAndChildrenIds(strId);
         const photoCount = this.photos.filter(photo => {
             const photoCats = this.photoCategories[photo.id] || [];
             return categoryIds.some(catId => photoCats.includes(catId));
@@ -1760,8 +1778,8 @@ const mobile = {
         console.log('[DEBUG] 该分类及其子分类IDs:', categoryIds);
         
         // 打印每个目标分类的名字
-        const targetCatNames = categoryIds.map(id => {
-            const cat = this.categories.find(c => c.id === id);
+        const targetCatNames = categoryIds.map(catId => {
+            const cat = this.categories.find(c => String(c.id) === String(catId));
             return cat ? cat.name : '未知';
         });
         console.log('[DEBUG] 目标分类名字:', targetCatNames);
@@ -1903,11 +1921,12 @@ const mobile = {
         }
 
         const list = document.getElementById('markedCategoriesList');
-        list.innerHTML = this.markedCategories.map(id => {
-            const cat = this.categories.find(c => c.id === id);
+        list.innerHTML = this.markedCategories.map(markedId => {
+            const strId = String(markedId);
+            const cat = this.categories.find(c => String(c.id) === strId);
             if (!cat) return '';
             return `
-                <div class="marked-item" onclick="mobile.selectCategory('${id}')">
+                <div class="marked-item" onclick="mobile.selectCategory('${strId}')">
                     <span>📁 ${cat.name}</span>
                     <span class="unmark" onclick="event.stopPropagation();mobile.unmarkCategory('${id}')">✕</span>
                 </div>
