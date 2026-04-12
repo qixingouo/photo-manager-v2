@@ -788,8 +788,9 @@ const mobile = {
             localStorage.setItem('lastUploadCategoryId', categoryId);
         }
         
-        // 重新加载照片
+        // 重新加载照片和分类关联
         await this.loadPhotos();
+        await this.loadAllPhotoCategories();
         this.renderPhotos();
     },
 
