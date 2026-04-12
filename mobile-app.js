@@ -831,7 +831,7 @@ const mobile = {
         
         // 如果选中了某个分类，显示其子分类作为下一级
         if (selectedValue) {
-            const children = this.categories.filter(c => c.parent_id === selectedValue);
+            const children = this.categories.filter(c => String(c.parent_id) === selectedValue);
             if (children.length > 0) {
                 const nextLevel = level + 1;
                 const nextSelect = document.createElement('select');
@@ -890,7 +890,7 @@ const mobile = {
         
         // 如果选中了某个分类，显示其子分类作为下一级
         if (selectedValue) {
-            const children = this.categories.filter(c => c.parent_id === selectedValue);
+            const children = this.categories.filter(c => String(c.parent_id) === selectedValue);
             if (children.length > 0) {
                 const nextLevel = level + 1;
                 const nextSelect = document.createElement('select');
@@ -1063,7 +1063,7 @@ const mobile = {
             const supabase = this.initSupabase();
             const { data, error } = await supabase
                 .from('categories')
-                .insert([{ name, parent_id: parentId ? parseInt(parentId) : null }])
+                .insert([{ name, parent_id: parentId || null }])
                 .select()
                 .single();
 
