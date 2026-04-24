@@ -122,8 +122,8 @@ GRANT EXECUTE ON FUNCTION authenticate_user(TEXT, TEXT) TO anon, authenticated;
 -- 只保留两个账号（示例）
 INSERT INTO app_users (username, password_hash, role)
 VALUES
-('laoda', crypt('请改成强密码1', gen_salt('bf')), 'laoda'),
-('xiaodi', crypt('请改成强密码2', gen_salt('bf')), 'user');
+('laoda', crypt('YOUR_SECURE_PASSWORD_HERE', gen_salt('bf')), 'laoda'),
+('xiaodi', crypt('YOUR_SECURE_PASSWORD_HERE', gen_salt('bf')), 'user');
 ```
 
 ## Storage Bucket

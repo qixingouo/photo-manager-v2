@@ -18,26 +18,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // 直接初始化 Supabase（CDN 脚本是同步加载的）
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const AUTH_SESSION_KEY = 'photo_manager_session'
+const AUTH_SESSION_KEY = 'photo_manager_session';
 
 function getStoredSession() {
     try {
-        const raw = localStorage.getItem(AUTH_SESSION_KEY)
-        if (!raw) return null
-        const session = JSON.parse(raw)
-        if (!session?.username || !session?.role) return null
-        return session
+        const raw = localStorage.getItem(AUTH_SESSION_KEY);
+        if (!raw) return null;
+        const session = JSON.parse(raw);
+        if (!session?.username || !session?.role) return null;
+        return session;
     } catch (_) {
         return null
     }
 }
 
 function saveSession(session) {
-    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
 }
 
 function clearSession() {
-    localStorage.removeItem(AUTH_SESSION_KEY)
+    localStorage.removeItem(AUTH_SESSION_KEY);
 }
 
 // ========== 初始化 ==========
