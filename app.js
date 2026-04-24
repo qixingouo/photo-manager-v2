@@ -1493,10 +1493,16 @@ function renderComments() {
     
     container.innerHTML = currentComments.map(c => `
         <div class="comment-item">
-            <div>${c.content}</div>
+            <div>${escapeHtml(c.content || '')}</div>
             <div class="comment-time">${formatTime(c.created_at)}</div>
         </div>
     `).join('')
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
 }
 
 window.addComment = async function(e) {
@@ -1820,10 +1826,11 @@ window.saveCategoryChange = async function() {
         const selectedCategories = Array.from(checkboxes).map(cb => cb.value)
         
         // 先删除旧的关联
-        await supabase
+        const { error: relationDeleteError } = await supabase
             .from('photo_categories')
             .delete()
             .eq('photo_id', currentPhoto.id)
+        if (relationDeleteError) throw relationDeleteError
         
         // 添加新的关联
         if (selectedCategories.length > 0) {
@@ -1832,9 +1839,10 @@ window.saveCategoryChange = async function() {
                 category_id: cid
             }))
             
-            await supabase
+            const { error: relationInsertError } = await supabase
                 .from('photo_categories')
                 .insert(inserts)
+            if (relationInsertError) throw relationInsertError
         }
         
         // 更新本地缓存
@@ -1876,16 +1884,18 @@ window.deletePhoto = async function(id, storagePath) {
         if (storageError) throw storageError
         
         // 删除关联
-        await supabase
+        const { error: relationDeleteError } = await supabase
             .from('photo_categories')
             .delete()
             .eq('photo_id', id)
+        if (relationDeleteError) throw relationDeleteError
         
         // 删除留言
-        await supabase
+        const { error: commentDeleteError } = await supabase
             .from('comments')
             .delete()
             .eq('photo_id', id)
+        if (commentDeleteError) throw commentDeleteError
         
         const { error: deleteError } = await supabase
             .from('photos')

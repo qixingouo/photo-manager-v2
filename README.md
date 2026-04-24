@@ -77,9 +77,51 @@ CREATE TABLE photos (
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 
--- 设置权限
-CREATE POLICY "Allow all access to categories" ON categories FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all access to photos" ON photos FOR ALL USING (true) WITH CHECK (true);
+-- ⚠️ 不要使用 FOR ALL + true 的全开放策略
+-- 下面是更安全的最小策略示例：
+-- 1) 匿名仅可读
+CREATE POLICY "categories_read_anon"
+ON categories FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "photos_read_anon"
+ON photos FOR SELECT
+TO anon
+USING (true);
+
+-- 2) 写入仅允许 authenticated（生产建议走登录态或后端服务）
+CREATE POLICY "categories_write_authenticated"
+ON categories FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "categories_update_authenticated"
+ON categories FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "categories_delete_authenticated"
+ON categories FOR DELETE
+TO authenticated
+USING (true);
+
+CREATE POLICY "photos_write_authenticated"
+ON photos FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "photos_update_authenticated"
+ON photos FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "photos_delete_authenticated"
+ON photos FOR DELETE
+TO authenticated
+USING (true);
 ```
 
 ### 账号密码登录（不用邮箱）

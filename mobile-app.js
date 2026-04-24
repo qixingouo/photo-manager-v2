@@ -444,7 +444,11 @@ const mobile = {
         const endIndex = Math.min(startIndex + this.photosPerPage, filteredPhotos.length);
         const pagePhotos = filteredPhotos.slice(startIndex, endIndex);
         
-        feed.innerHTML = pagePhotos.map((photo, index) => `
+        feed.innerHTML = pagePhotos.map((photo, index) => {
+            const safeName = this.escapeHtml(photo.name || '未命名');
+            const safeDesc = this.escapeHtml(photo.description || '');
+            const safeImg = this.escapeHtml(this.getPhotoUrl(photo.storage_path) || ('https://picsum.photos/400/400?random=' + photo.id));
+            return `
             <div class="photo-card ${this.selectMode ? 'select-mode' : ''} ${this.selectedPhotos.has(photo.id) ? 'selected' : ''}" 
                  onclick="${this.selectMode ? "mobile.togglePhotoSelect('" + photo.id + "')" : "mobile.openDetail('" + photo.id + "')"}" 
                  style="animation-delay: ${index * 50}ms">
@@ -453,14 +457,14 @@ const mobile = {
                         <input type="checkbox" ${this.selectedPhotos.has(photo.id) ? 'checked' : ''} onclick="event.stopPropagation(); mobile.togglePhotoSelect('${photo.id}')">
                     </div>
                 ` : ''}
-                <img src="${this.getPhotoUrl(photo.storage_path) || 'https://picsum.photos/400/400?random=' + photo.id}" alt="${photo.name}">
+                <img src="${safeImg}" alt="${safeName}">
                 <div class="photo-card-info">
-                    <h4>${photo.name || '未命名'}</h4>
-                    <p>${photo.description || ''}</p>
+                    <h4>${safeName}</h4>
+                    <p>${safeDesc}</p>
                 </div>
                 ${photo.is_favorite ? '<span class="photo-card-fav">❤️</span>' : ''}
             </div>
-        `).join('');
+        `}).join('');
         
         // 渲染分页控制
         this.renderLoadMoreButton(totalPages, filteredPhotos.length);
@@ -1239,14 +1243,14 @@ const mobile = {
         const originalName = category.name;
         
         // 替换为输入框
-        nameEl.innerHTML = `<input type="text" id="edit-cat-name-${id}" value="${originalName}" class="category-name-input" />`;
+        nameEl.innerHTML = `<input type="text" id="edit-cat-name-${id}" value="${this.escapeHtml(originalName)}" class="category-name-input" />`;
         
         // 添加保存/取消按钮
         const headerEl = document.querySelector(`#cat-${id} .category-header`);
         headerEl.innerHTML += `
             <div class="category-edit-actions">
                 <button class="btn-save" onclick="mobile.saveCategoryName('${id}')">✓ 保存</button>
-                <button class="btn-cancel" onclick="mobile.cancelEditCategory('${id}', '${originalName.replace(/'/g, "\\'")}')">✕ 取消</button>
+                <button class="btn-cancel" onclick="mobile.cancelEditCategory('${id}')">✕ 取消</button>
             </div>
         `;
         
@@ -1260,7 +1264,7 @@ const mobile = {
                 if (e.key === 'Enter') {
                     this.saveCategoryName(id);
                 } else if (e.key === 'Escape') {
-                    this.cancelEditCategory(id, originalName);
+                    this.cancelEditCategory(id);
                 }
             });
         }
@@ -1321,11 +1325,12 @@ const mobile = {
         }
     },
 
-    cancelEditCategory(id, originalName) {
+    cancelEditCategory(id) {
         // 恢复原始显示
         const nameEl = document.querySelector(`#cat-${id} .category-name-text`);
+        const category = this.categories.find(c => String(c.id) === String(id));
         if (nameEl) {
-            nameEl.textContent = originalName;
+            nameEl.textContent = category?.name || '';
         }
         
         // 移除保存/取消按钮
@@ -1475,16 +1480,12 @@ const mobile = {
                 return categoryIds.some(catId => photoCats.includes(catId));
             }).length;
             
-            const category = this.categories.find(c => c.id === this.pendingDeleteId);
-            document.getElementById('confirmTitle').textContent = '删除分类';
-            const photoMsg = photoCount > 0 ? `该分类下有 ${photoCount} 张照片，删除分类将同时删除这些照片。` : '';
-            document.getElementById('confirmMessage').textContent = `确定要删除分类「${category.name}」吗？${photoMsg}`;
-            document.getElementById('confirmModal').style.display = 'flex';
+            const category = this.categories.find(c => String(c.id) === String(this.pendingDeleteId));
+            this.pendingCategoryName = category?.name || '未命名分类';
+            this.pendingPhotoCount = photoCount;
+            this.showCategoryDeleteOptions(photoCount);
             return;
         }
-        
-        this.closeLockPasswordModal();
-        this.renderCategories();
         
         this.closeLockPasswordModal();
         this.renderCategories();
@@ -1563,7 +1564,7 @@ const mobile = {
             return categoryIds.some(catId => photoCats.includes(catId));
         }).length;
         
-        this.pendingDeleteId = id;
+        this.pendingDeleteId = strId;
         this.pendingCategoryName = category.name;
         this.pendingPhotoCount = photoCount;
         
@@ -1573,13 +1574,14 @@ const mobile = {
 
     showCategoryDeleteOptions(photoCount) {
         const photoMsg = photoCount > 0 ? `该分类下有 ${photoCount} 张照片` : '该分类下暂无照片';
+        const safeCategoryName = this.escapeHtml(this.pendingCategoryName || '');
         
         const modal = document.createElement('div');
         modal.id = 'categoryDeleteModal';
         modal.className = 'modal-overlay';
         modal.innerHTML = `
             <div class="modal-card">
-                <h3>🗑️ 删除「${this.pendingCategoryName}」</h3>
+                <h3>🗑️ 删除「${safeCategoryName}」</h3>
                 <p class="modal-hint" style="color:var(--text-muted);font-size:13px;margin:8px 0 16px;">${photoMsg}</p>
                 <div class="delete-options">
                     <button class="delete-option-btn" onclick="mobile.confirmDeleteCategoryOnly()">
@@ -1621,15 +1623,18 @@ const mobile = {
     async confirmDeleteCategoryOnly() {
         const categoryId = this.pendingDeleteId;
         const supabase = this.initSupabase();
+        if (!supabase) return;
         
         this.closeCategoryDeleteModal();
         
         try {
             // 删除分类与照片的关联（照片保留）
-            await supabase.from('photo_categories').delete().eq('category_id', categoryId);
+            const { error: relDeleteError } = await supabase.from('photo_categories').delete().eq('category_id', categoryId);
+            if (relDeleteError) throw relDeleteError;
             
             // 删除分类
-            await supabase.from('categories').delete().eq('id', categoryId);
+            const { error: categoryDeleteError } = await supabase.from('categories').delete().eq('id', categoryId);
+            if (categoryDeleteError) throw categoryDeleteError;
             
             // 更新本地状态
             this.categories = this.categories.filter(c => c.id !== categoryId);
@@ -1658,6 +1663,7 @@ const mobile = {
         const categoryId = this.pendingDeleteId;
         const categoryIds = this.getCategoryAndChildrenIds(categoryId);
         const supabase = this.initSupabase();
+        if (!supabase) return;
         
         this.closeCategoryDeleteModal();
         
@@ -1672,7 +1678,8 @@ const mobile = {
         // 删除照片
         for (const photo of photosToDelete) {
             try {
-                await supabase.from('photos').delete().eq('id', photo.id);
+                const { error: photoDeleteError } = await supabase.from('photos').delete().eq('id', photo.id);
+                if (photoDeleteError) throw photoDeleteError;
                 deletedPhotoCount++;
             } catch (err) {
                 console.error('删除照片失败:', photo.id, err);
@@ -1681,9 +1688,12 @@ const mobile = {
         
         // 删除分类
         try {
-            await supabase.from('categories').delete().eq('id', categoryId);
+            const { error: categoryDeleteError } = await supabase.from('categories').delete().eq('id', categoryId);
+            if (categoryDeleteError) throw categoryDeleteError;
         } catch (err) {
             console.error('删除分类失败:', err);
+            this.showToast('删除分类失败，请重试');
+            return;
         }
         
         // 更新本地状态
@@ -1711,6 +1721,7 @@ const mobile = {
         const categoryId = this.pendingDeleteId;
         const categoryIds = this.getCategoryAndChildrenIds(categoryId);
         const supabase = this.initSupabase();
+        if (!supabase) return;
         
         this.closeCategoryDeleteModal();
         
@@ -1725,7 +1736,8 @@ const mobile = {
         // 删除照片
         for (const photo of photosToDelete) {
             try {
-                await supabase.from('photos').delete().eq('id', photo.id);
+                const { error: photoDeleteError } = await supabase.from('photos').delete().eq('id', photo.id);
+                if (photoDeleteError) throw photoDeleteError;
                 deletedPhotoCount++;
             } catch (err) {
                 console.error('删除照片失败:', photo.id, err);
@@ -1749,6 +1761,7 @@ const mobile = {
         if (this.pendingDeleteType === 'category') {
             const categoryId = this.pendingDeleteId;
             const supabase = this.initSupabase();
+            if (!supabase) return;
             
             // 获取分类及其所有子分类的ID
             const categoryIds = this.getCategoryAndChildrenIds(categoryId);
@@ -1764,7 +1777,8 @@ const mobile = {
             // 先删除这些照片（会级联删除关联和留言）
             for (const photo of photosToDelete) {
                 try {
-                    await supabase.from('photos').delete().eq('id', photo.id);
+                    const { error: photoDeleteError } = await supabase.from('photos').delete().eq('id', photo.id);
+                    if (photoDeleteError) throw photoDeleteError;
                     deletedPhotoCount++;
                 } catch (err) {
                     console.error('删除照片失败:', photo.id, err);
@@ -1773,9 +1787,12 @@ const mobile = {
             
             // 删除分类本身
             try {
-                await supabase.from('categories').delete().eq('id', categoryId);
+                const { error: categoryDeleteError } = await supabase.from('categories').delete().eq('id', categoryId);
+                if (categoryDeleteError) throw categoryDeleteError;
             } catch (err) {
                 console.error('删除分类失败:', err);
+                this.showToast('删除分类失败，请重试');
+                return;
             }
             
             // 更新本地状态
@@ -1798,16 +1815,46 @@ const mobile = {
             this.showToast(`分类及关联的 ${deletedPhotoCount} 张照片已删除`);
             
         } else if (this.pendingDeleteType === 'photo') {
-            this.photos = this.photos.filter(p => p.id !== this.pendingDeleteId);
-            this.renderPhotos();
-            this.showToast('照片已删除');
+            const photoId = this.pendingDeleteId;
+            const supabase = this.initSupabase();
+            if (!supabase) return;
+            try {
+                const { error: relationDeleteError } = await supabase
+                    .from('photo_categories')
+                    .delete()
+                    .eq('photo_id', photoId);
+                if (relationDeleteError) throw relationDeleteError;
+
+                const { error: commentDeleteError } = await supabase
+                    .from('comments')
+                    .delete()
+                    .eq('photo_id', photoId);
+                if (commentDeleteError) throw commentDeleteError;
+
+                const { error: photoDeleteError } = await supabase
+                    .from('photos')
+                    .delete()
+                    .eq('id', photoId);
+                if (photoDeleteError) throw photoDeleteError;
+
+                this.photos = this.photos.filter(p => p.id !== photoId);
+                this.renderPhotos();
+                this.closeDetail();
+                this.showToast('照片已删除');
+            } catch (err) {
+                console.error('删除照片失败:', err);
+                this.showToast('删除失败，请重试');
+                return;
+            }
         } else if (this.pendingDeleteType === 'batch-photo') {
             // 批量删除
             const supabase = this.initSupabase();
+            if (!supabase) return;
             let deletedCount = 0;
             for (const photoId of this.selectedPhotos) {
                 try {
-                    await supabase.from('photos').delete().eq('id', photoId);
+                    const { error: photoDeleteError } = await supabase.from('photos').delete().eq('id', photoId);
+                    if (photoDeleteError) throw photoDeleteError;
                     this.photos = this.photos.filter(p => p.id !== photoId);
                     deletedCount++;
                 } catch (err) {
@@ -2198,9 +2245,11 @@ const mobile = {
         
         try {
             const supabase = this.initSupabase();
+            if (!supabase) throw new Error('Supabase 未初始化');
             
             // 删除旧关联
-            await supabase.from('photo_categories').delete().eq('photo_id', photoId);
+            const { error: relationDeleteError } = await supabase.from('photo_categories').delete().eq('photo_id', photoId);
+            if (relationDeleteError) throw relationDeleteError;
             
             // 添加新关联
             if (selectedIds.length > 0) {
@@ -2208,7 +2257,8 @@ const mobile = {
                     photo_id: photoId,
                     category_id: catId
                 }));
-                await supabase.from('photo_categories').insert(inserts);
+                const { error: relationInsertError } = await supabase.from('photo_categories').insert(inserts);
+                if (relationInsertError) throw relationInsertError;
             }
             
             // 更新本地状态
