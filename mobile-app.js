@@ -55,8 +55,10 @@ const mobile = {
 
     getUserFromSession(session) {
         const email = session?.user?.email || '';
-        const username = email.split('@')[0] || '用户';
-        return { username, role: username === 'laoda' ? '老大' : '小弟' };
+        const metadataRole = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role || '';
+        const username = session?.user?.user_metadata?.display_name || email.split('@')[0] || '用户';
+        const isLaoda = metadataRole === 'laoda';
+        return { username, role: isLaoda ? '老大' : '用户', isLaoda };
     },
     
     // 获取照片公开URL
@@ -202,11 +204,6 @@ const mobile = {
             return;
         }
 
-        if (!account.includes('@')) {
-            errorEl.textContent = '请输入邮箱账号';
-            return;
-        }
-
         const { data, error } = await client.auth.signInWithPassword({
             email: account,
             password
@@ -221,7 +218,7 @@ const mobile = {
         errorEl.textContent = '';
         
         // 老大欢迎页
-        if (this.currentUser.username === 'laoda') {
+        if (this.currentUser.isLaoda) {
             this.showToast('🎉 老大生日快乐！');
         }
         

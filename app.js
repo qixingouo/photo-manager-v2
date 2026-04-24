@@ -24,9 +24,9 @@ window.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
-function getUserAliasFromSession(session) {
-    const email = session?.user?.email || ''
-    return email.split('@')[0] || ''
+function isLaodaFromSession(session) {
+    const role = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role
+    return role === 'laoda'
 }
 
 // 检查登录状态
@@ -69,11 +69,6 @@ window.handleLogin = async function(e) {
     const password = document.getElementById('loginPassword').value
     const errorEl = document.getElementById('loginError')
 
-    if (!account.includes('@')) {
-        errorEl.textContent = '请输入邮箱账号'
-        return
-    }
-
     const { data, error } = await supabase.auth.signInWithPassword({
         email: account,
         password
@@ -85,10 +80,8 @@ window.handleLogin = async function(e) {
     }
 
     errorEl.textContent = ''
-    const username = getUserAliasFromSession(data.session)
-    
     // 如果是老大，显示生日快乐欢迎界面
-    if (username === 'laoda') {
+    if (isLaodaFromSession(data.session)) {
         showBirthdayWelcome()
     } else {
         showMainApp()
