@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": null,
+  "buildCommand": "node scripts/build-config.js",
   "outputDirectory": ".",
   "installCommand": null,
   "framework": null
