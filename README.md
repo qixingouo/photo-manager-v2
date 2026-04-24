@@ -71,6 +71,61 @@ CREATE POLICY "Allow all access to categories" ON categories FOR ALL USING (true
 CREATE POLICY "Allow all access to photos" ON photos FOR ALL USING (true) WITH CHECK (true);
 ```
 
+### 账号密码登录（不用邮箱）
+
+前端会调用 `authenticate_user` 函数校验账号密码。可用以下 SQL 创建仅账号登录所需表与函数：
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE app_users (
+    username TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('laoda', 'user')),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION authenticate_user(p_username TEXT, p_password TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user app_users%ROWTYPE;
+BEGIN
+    SELECT * INTO v_user
+    FROM app_users
+    WHERE username = p_username
+      AND is_active = true;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false);
+    END IF;
+
+    IF crypt(p_password, v_user.password_hash) <> v_user.password_hash THEN
+        RETURN jsonb_build_object('success', false);
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'username', v_user.username,
+        'role', v_user.role
+    );
+END;
+$$;
+
+REVOKE ALL ON TABLE app_users FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION authenticate_user(TEXT, TEXT) TO anon, authenticated;
+
+-- 只保留两个账号（示例）
+INSERT INTO app_users (username, password_hash, role)
+VALUES
+('laoda', crypt('请改成强密码1', gen_salt('bf')), 'laoda'),
+('xiaodi', crypt('请改成强密码2', gen_salt('bf')), 'user');
+```
+
 ## Storage Bucket
 
 创建名为 `photos` 的公开 Storage Bucket。

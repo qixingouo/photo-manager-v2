@@ -18,6 +18,27 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // 直接初始化 Supabase（CDN 脚本是同步加载的）
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const AUTH_SESSION_KEY = 'photo_manager_session'
+
+function getStoredSession() {
+    try {
+        const raw = localStorage.getItem(AUTH_SESSION_KEY)
+        if (!raw) return null
+        const session = JSON.parse(raw)
+        if (!session?.username || !session?.role) return null
+        return session
+    } catch (_) {
+        return null
+    }
+}
+
+function saveSession(session) {
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
+}
+
+function clearSession() {
+    localStorage.removeItem(AUTH_SESSION_KEY)
+}
 
 // ========== 初始化 ==========
 window.addEventListener('DOMContentLoaded', () => {
@@ -25,20 +46,14 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function isLaodaFromSession(session) {
-    const role = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role
+    const role = session?.role
     return role === 'laoda'
 }
 
 // 检查登录状态
 async function checkLogin() {
-    const { data, error } = await supabase.auth.getSession()
-    if (error) {
-        console.error('检查登录状态失败:', error)
-        showLoginPage()
-        return
-    }
-
-    if (data.session) {
+    const session = getStoredSession()
+    if (session) {
         showMainApp()
         await Promise.all([loadCategories(), loadPhotos()])
     } else {
@@ -69,19 +84,24 @@ window.handleLogin = async function(e) {
     const password = document.getElementById('loginPassword').value
     const errorEl = document.getElementById('loginError')
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: account,
-        password
+    const { data, error } = await supabase.rpc('authenticate_user', {
+        p_username: account,
+        p_password: password
     })
 
-    if (error) {
-        errorEl.textContent = '登录失败，请检查邮箱或密码'
+    if (error || !data?.success) {
+        errorEl.textContent = '登录失败，请检查账号或密码'
         return
     }
 
+    const session = {
+        username: data.username || account,
+        role: data.role || 'user'
+    }
+    saveSession(session)
     errorEl.textContent = ''
     // 如果是老大，显示生日快乐欢迎界面
-    if (isLaodaFromSession(data.session)) {
+    if (isLaodaFromSession(session)) {
         showBirthdayWelcome()
     } else {
         showMainApp()
@@ -192,10 +212,7 @@ window.enterMainApp = function() {
 }
 
 window.handleLogout = async function() {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-        console.error('退出登录失败:', error)
-    }
+    clearSession()
     showLoginPage()
 }
 

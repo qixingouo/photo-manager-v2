@@ -38,6 +38,7 @@ const mobile = {
     SUPABASE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwd3F0bHhyZmV6cG54cGd3bHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDk2MzAsImV4cCI6MjA5MTAyNTYzMH0._yAiiFxsZbsOHf9ItMYU9ZRuNLjVDEbdZFwyh7U6C9w',
     STORAGE_URL: 'https://hpwqtlxrfezpnxpgwlsx.supabase.co/storage/v1/object/public/photo/',
+    AUTH_SESSION_KEY: 'photo_manager_session',
     supabase: null,
     
     // 初始化 Supabase 客户端
@@ -54,11 +55,30 @@ const mobile = {
     },
 
     getUserFromSession(session) {
-        const email = session?.user?.email || '';
-        const metadataRole = session?.user?.app_metadata?.role || session?.user?.user_metadata?.role || '';
-        const username = session?.user?.user_metadata?.display_name || (email ? email.split('@')[0] : '') || '用户';
+        const username = session?.username || '用户';
+        const metadataRole = session?.role || '';
         const isLaoda = metadataRole === 'laoda';
         return { username, role: isLaoda ? '老大' : '用户', isLaoda };
+    },
+
+    getStoredSession() {
+        try {
+            const raw = localStorage.getItem(this.AUTH_SESSION_KEY);
+            if (!raw) return null;
+            const session = JSON.parse(raw);
+            if (!session?.username || !session?.role) return null;
+            return session;
+        } catch (_) {
+            return null;
+        }
+    },
+
+    saveSession(session) {
+        localStorage.setItem(this.AUTH_SESSION_KEY, JSON.stringify(session));
+    },
+
+    clearSession() {
+        localStorage.removeItem(this.AUTH_SESSION_KEY);
     },
     
     // 获取照片公开URL
@@ -171,15 +191,9 @@ const mobile = {
             return;
         }
 
-        const { data, error } = await client.auth.getSession();
-        if (error) {
-            console.error('检查登录状态失败:', error);
-            this.showPage('login');
-            return;
-        }
-
-        if (data.session) {
-            this.currentUser = this.getUserFromSession(data.session);
+        const session = this.getStoredSession();
+        if (session) {
+            this.currentUser = this.getUserFromSession(session);
             this.showPage('home');
             this.loadData().catch(err => {
                 console.error('加载数据失败:', err);
@@ -204,17 +218,22 @@ const mobile = {
             return;
         }
 
-        const { data, error } = await client.auth.signInWithPassword({
-            email: account,
-            password
+        const { data, error } = await client.rpc('authenticate_user', {
+            p_username: account,
+            p_password: password
         });
 
-        if (error) {
-            errorEl.textContent = '登录失败，请检查邮箱或密码';
+        if (error || !data?.success) {
+            errorEl.textContent = '登录失败，请检查账号或密码';
             return;
         }
 
-        this.currentUser = this.getUserFromSession(data.session);
+        const session = {
+            username: data.username || account,
+            role: data.role || 'user'
+        };
+        this.saveSession(session);
+        this.currentUser = this.getUserFromSession(session);
         errorEl.textContent = '';
         
         // 老大欢迎页
@@ -233,13 +252,7 @@ const mobile = {
     },
 
     async handleLogout() {
-        const client = this.initSupabase();
-        if (client) {
-            const { error } = await client.auth.signOut();
-            if (error) {
-                console.error('退出登录失败:', error);
-            }
-        }
+        this.clearSession();
         this.currentUser = null;
         this.showPage('login');
         this.showToast('已退出登录');
