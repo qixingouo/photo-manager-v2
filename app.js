@@ -28,7 +28,7 @@ function getStoredSession() {
         if (!session?.username || !session?.role) return null;
         return session;
     } catch (_) {
-        return null
+        return null;
     }
 }
 
@@ -46,8 +46,8 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function isLaodaFromSession(session) {
-    const role = session?.role
-    return role === 'laoda'
+    const role = session?.role;
+    return role === 'laoda';
 }
 
 // 检查登录状态
